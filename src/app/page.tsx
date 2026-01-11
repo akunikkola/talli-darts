@@ -83,7 +83,7 @@ export default function Home() {
                 <span className="text-slate-400 text-sm mr-4">
                   {player.wins}W - {player.losses}L
                 </span>
-                <span className="text-[#4ade80] font-semibold">{player.elo}</span>
+                <span className="text-[#4ade80] font-semibold">{player.elo.toFixed(2)}</span>
               </div>
             ))
           )}

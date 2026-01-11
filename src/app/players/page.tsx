@@ -52,7 +52,7 @@ export default function Players() {
         </div>
         <div className="flex gap-3 text-xs text-slate-500">
           <span>{player.wins}W - {player.losses}L</span>
-          <span>ELO: {player.elo}</span>
+          <span>ELO: {player.elo.toFixed(2)}</span>
         </div>
       </button>
       <button

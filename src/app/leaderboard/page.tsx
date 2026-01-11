@@ -148,7 +148,7 @@ export default function Leaderboard() {
                 </div>
               </div>
               <div className="text-right">
-                <span className="text-[#4ade80] font-bold text-xl">{getElo(player)}</span>
+                <span className="text-[#4ade80] font-bold text-xl">{getElo(player).toFixed(2)}</span>
                 <p className="text-slate-500 text-xs">ELO</p>
               </div>
             </div>

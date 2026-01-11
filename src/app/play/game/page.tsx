@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { getCheckoutSuggestion } from "@/lib/darts";
-import { calculateNewElo } from "@/lib/elo";
+import { calculateMatchElo } from "@/lib/elo";
 import { getPlayer, updatePlayer } from "@/lib/players";
 import { saveMatch } from "@/lib/matches";
 
@@ -145,17 +145,21 @@ function GameContent() {
     return isCurrent ? colors[index % colors.length].active : colors[index % colors.length].inactive;
   };
 
+  // Helper to round to 2 decimal places
+  const roundTo2 = (n: number) => Math.round(n * 100) / 100;
+
   const saveMatchResult = (winnerIndex: number, winnerLegs: number, loserLegs: number) => {
     if (game.matchSaved || !game.isRanked || game.players.length !== 2) return;
 
     const winner = game.players[winnerIndex];
     const loser = game.players[winnerIndex === 0 ? 1 : 0];
 
-    // Calculate new ELOs
-    const winnerNewElo = calculateNewElo(winner.elo, loser.elo, true);
-    const loserNewElo = calculateNewElo(loser.elo, winner.elo, false);
-    const winnerEloChange = winnerNewElo - winner.elo;
-    const loserEloChange = loserNewElo - loser.elo;
+    // Calculate new ELOs using the proper formula
+    const eloResult = calculateMatchElo(winner.elo, loser.elo, true);
+    const winnerNewElo = eloResult.newEloA;
+    const loserNewElo = eloResult.newEloB;
+    const winnerEloChange = eloResult.changeA;
+    const loserEloChange = eloResult.changeB;
 
     // Update player stats
     const winnerStored = getPlayer(winner.id);
@@ -177,10 +181,10 @@ function GameContent() {
         updates.wins501 = winnerStored.wins501 + 1;
       }
 
-      // Update overall ELO as average of 301 and 501
+      // Update overall ELO as average of 301 and 501 (2 decimal places)
       const new301 = mode === "301" ? winnerNewElo : winnerStored.elo301;
       const new501 = mode === "501" ? winnerNewElo : winnerStored.elo501;
-      updates.elo = Math.round((new301 + new501) / 2);
+      updates.elo = roundTo2((new301 + new501) / 2);
 
       updatePlayer(winner.id, updates);
     }
@@ -201,9 +205,10 @@ function GameContent() {
         updates.losses501 = loserStored.losses501 + 1;
       }
 
+      // Update overall ELO as average of 301 and 501 (2 decimal places)
       const new301 = mode === "301" ? loserNewElo : loserStored.elo301;
       const new501 = mode === "501" ? loserNewElo : loserStored.elo501;
-      updates.elo = Math.round((new301 + new501) / 2);
+      updates.elo = roundTo2((new301 + new501) / 2);
 
       updatePlayer(loser.id, updates);
     }

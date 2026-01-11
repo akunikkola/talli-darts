@@ -107,7 +107,7 @@ export default function StatsPage() {
                 <p className="text-slate-400 text-sm">Highest ELO</p>
                 <p className="text-white font-semibold">{stats.highestElo.name}</p>
               </div>
-              <span className="text-[#4ade80] text-2xl font-bold">{stats.highestElo.elo}</span>
+              <span className="text-[#4ade80] text-2xl font-bold">{stats.highestElo.elo.toFixed(2)}</span>
             </div>
           )}
 

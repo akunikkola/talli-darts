@@ -82,7 +82,7 @@ export default function EditPlayer({ params }: { params: Promise<{ id: string }>
         <div className="bg-[#2a2a2a] rounded-xl p-4 mb-6">
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
-              <p className="text-2xl font-bold text-white">{player.elo}</p>
+              <p className="text-2xl font-bold text-white">{player.elo.toFixed(2)}</p>
               <p className="text-xs text-slate-400">Overall ELO</p>
             </div>
             <div>
@@ -96,11 +96,11 @@ export default function EditPlayer({ params }: { params: Promise<{ id: string }>
           </div>
           <div className="grid grid-cols-2 gap-4 mt-4 text-center">
             <div>
-              <p className="text-lg font-bold text-white">{player.elo301}</p>
+              <p className="text-lg font-bold text-white">{player.elo301.toFixed(2)}</p>
               <p className="text-xs text-slate-400">301 ELO</p>
             </div>
             <div>
-              <p className="text-lg font-bold text-white">{player.elo501}</p>
+              <p className="text-lg font-bold text-white">{player.elo501.toFixed(2)}</p>
               <p className="text-xs text-slate-400">501 ELO</p>
             </div>
           </div>

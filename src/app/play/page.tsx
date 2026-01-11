@@ -87,7 +87,7 @@ export default function PlaySetup() {
             <p className="text-white/60 text-xs mb-1">Player 1</p>
             <p className="text-white font-bold text-lg">{player1?.name || "Select"}</p>
             {player1 && (
-              <p className="text-white/70 text-xs mt-1">ELO: {player1.elo}</p>
+              <p className="text-white/70 text-xs mt-1">ELO: {player1.elo.toFixed(2)}</p>
             )}
           </div>
           <div
@@ -98,7 +98,7 @@ export default function PlaySetup() {
             <p className="text-white/60 text-xs mb-1">Player 2</p>
             <p className="text-white font-bold text-lg">{player2?.name || "Select"}</p>
             {player2 && (
-              <p className="text-white/70 text-xs mt-1">ELO: {player2.elo}</p>
+              <p className="text-white/70 text-xs mt-1">ELO: {player2.elo.toFixed(2)}</p>
             )}
           </div>
         </div>
