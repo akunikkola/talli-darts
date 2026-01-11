@@ -122,47 +122,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Weekly Highest Checkouts */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-white font-semibold">Checkouts This Week</h2>
-          <Link href="/checkouts" className="text-[#4ade80] text-sm">
-            See all
-          </Link>
-        </div>
-        <div className="bg-[#2a2a2a] rounded-xl overflow-hidden">
-          {weeklyCheckouts.length === 0 ? (
-            <p className="text-slate-500 text-center py-4">No checkouts this week</p>
-          ) : (
-            weeklyCheckouts.map((match, index) => (
-              <div
-                key={match.id}
-                className="flex items-center px-4 py-3 border-b border-[#333] last:border-b-0"
-              >
-                <span
-                  className={`w-6 text-center font-bold ${
-                    index === 0
-                      ? "text-yellow-400"
-                      : index === 1
-                      ? "text-slate-300"
-                      : "text-amber-600"
-                  }`}
-                >
-                  {index + 1}
-                </span>
-                <div className="flex-1 ml-3">
-                  <span className="text-white font-medium">{match.winnerName}</span>
-                  <span className="text-slate-500 text-xs ml-2">
-                    {new Date(match.playedAt).toLocaleDateString("fi-FI", { weekday: "short" })}
-                  </span>
-                </div>
-                <span className="text-[#4ade80] font-bold text-lg">{match.highestCheckout}</span>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-
       {/* Recent Matches */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
@@ -232,6 +191,47 @@ export default function Home() {
                 </div>
               );
             })
+          )}
+        </div>
+      </div>
+
+      {/* Weekly Highest Checkouts */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-white font-semibold">Checkouts This Week</h2>
+          <Link href="/checkouts" className="text-[#4ade80] text-sm">
+            See all
+          </Link>
+        </div>
+        <div className="bg-[#2a2a2a] rounded-xl overflow-hidden">
+          {weeklyCheckouts.length === 0 ? (
+            <p className="text-slate-500 text-center py-4">No checkouts this week</p>
+          ) : (
+            weeklyCheckouts.map((match, index) => (
+              <div
+                key={match.id}
+                className="flex items-center px-4 py-3 border-b border-[#333] last:border-b-0"
+              >
+                <span
+                  className={`w-6 text-center font-bold ${
+                    index === 0
+                      ? "text-yellow-400"
+                      : index === 1
+                      ? "text-slate-300"
+                      : "text-amber-600"
+                  }`}
+                >
+                  {index + 1}
+                </span>
+                <div className="flex-1 ml-3">
+                  <span className="text-white font-medium">{match.winnerName}</span>
+                  <span className="text-slate-500 text-xs ml-2">
+                    {new Date(match.playedAt).toLocaleDateString("fi-FI", { weekday: "short" })}
+                  </span>
+                </div>
+                <span className="text-[#4ade80] font-bold text-lg">{match.highestCheckout}</span>
+              </div>
+            ))
           )}
         </div>
       </div>

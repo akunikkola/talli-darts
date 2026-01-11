@@ -32,6 +32,8 @@ interface GameState {
   pendingLegWin: { winnerIndex: number; winnerName: string } | null;
   // Track current leg number (1-indexed) to alternate starters
   currentLeg: number;
+  // Track highest checkout across all legs in the match
+  matchHighestCheckout: number;
 }
 
 function GameContent() {
@@ -114,6 +116,7 @@ function GameContent() {
       matchSaved: false,
       pendingLegWin: null,
       currentLeg: 1,
+      matchHighestCheckout: 0,
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataLoading]);
@@ -306,7 +309,10 @@ function GameContent() {
     const newLegsWon = game.players[winnerIndex].legsWon + 1;
 
     // Get the checkout score (the score that won the leg)
-    const checkoutScore = game.players[winnerIndex].lastScore || 0;
+    const legCheckout = game.players[winnerIndex].lastScore || 0;
+
+    // Track the highest checkout across all legs in this match
+    const newHighestCheckout = Math.max(game.matchHighestCheckout, legCheckout);
 
     // Calculate final leg counts for saving
     const finalLegs = game.players.map((p, i) =>
@@ -331,14 +337,16 @@ function GameContent() {
           gameOver: true,
           matchWinner: newPlayers[winnerIndex].name,
           pendingLegWin: null,
+          matchHighestCheckout: newHighestCheckout,
         };
       });
 
       // Save immediately with calculated values (not from state)
+      // Use the highest checkout across all legs, not just the final leg
       if (isRanked && game.players.length === 2) {
-        saveMatchResult(winnerIndex, newLegsWon, finalLegs[loserIndex], checkoutScore);
+        saveMatchResult(winnerIndex, newLegsWon, finalLegs[loserIndex], newHighestCheckout);
       } else {
-        savePracticeMatch(winnerIndex, finalLegs, checkoutScore);
+        savePracticeMatch(winnerIndex, finalLegs, newHighestCheckout);
       }
     } else {
       // Start new leg - alternate the starter
@@ -363,6 +371,7 @@ function GameContent() {
           currentScore: "",
           pendingLegWin: null,
           currentLeg: nextLeg,
+          matchHighestCheckout: newHighestCheckout,
         };
       });
       setLastAction(null);
