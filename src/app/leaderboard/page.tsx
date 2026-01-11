@@ -7,6 +7,11 @@ import type { Player } from "@/lib/supabase-data";
 
 type RankingType = "overall" | "301" | "501";
 
+// Calculate average ELO from 301 and 501 ratings
+const getAverageElo = (player: Player) => {
+  return (player.elo301 + player.elo501) / 2;
+};
+
 export default function Leaderboard() {
   const { players, loading } = useData();
   const [rankingType, setRankingType] = useState<RankingType>("overall");
@@ -27,7 +32,7 @@ export default function Leaderboard() {
       case "501":
         return sorted.sort((a, b) => b.elo501 - a.elo501);
       default:
-        return sorted.sort((a, b) => b.elo - a.elo);
+        return sorted.sort((a, b) => getAverageElo(b) - getAverageElo(a));
     }
   };
 
@@ -38,7 +43,7 @@ export default function Leaderboard() {
       case "501":
         return player.elo501;
       default:
-        return player.elo;
+        return getAverageElo(player);
     }
   };
 

@@ -38,10 +38,13 @@ export default function StatsPage() {
     const practiceLegs = practiceMatchesList.reduce((sum, m) => sum + m.player1Legs + m.player2Legs, 0);
     const total180s = players.reduce((sum, p) => sum + p.oneEighties, 0);
 
+    // Calculate average ELO from 301 and 501 ratings
+    const getAverageElo = (p: typeof players[0]) => (p.elo301 + p.elo501) / 2;
+
     // Find leaders
     const sortedByWins = [...players].sort((a, b) => b.wins - a.wins);
     const sortedBy180s = [...players].sort((a, b) => b.oneEighties - a.oneEighties);
-    const sortedByElo = [...players].sort((a, b) => b.elo - a.elo);
+    const sortedByElo = [...players].sort((a, b) => getAverageElo(b) - getAverageElo(a));
 
     // Find biggest rivalry (ranked matches only)
     const rivalries: Record<string, number> = {};
@@ -158,7 +161,7 @@ export default function StatsPage() {
                 <p className="text-slate-400 text-sm">Highest ELO</p>
                 <p className="text-white font-semibold">{stats.highestElo.name}</p>
               </div>
-              <span className="text-[#4ade80] text-2xl font-bold">{stats.highestElo.elo.toFixed(2)}</span>
+              <span className="text-[#4ade80] text-2xl font-bold">{((stats.highestElo.elo301 + stats.highestElo.elo501) / 2).toFixed(0)}</span>
             </div>
           )}
 

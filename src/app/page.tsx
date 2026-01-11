@@ -3,10 +3,15 @@
 import Link from "next/link";
 import { useData } from "@/context/DataContext";
 
+// Calculate average ELO from 301 and 501 ratings
+const getAverageElo = (player: { elo301: number; elo501: number }) => {
+  return (player.elo301 + player.elo501) / 2;
+};
+
 export default function Home() {
   const { players, matches, loading } = useData();
 
-  const topPlayers = [...players].sort((a, b) => b.elo - a.elo).slice(0, 5);
+  const topPlayers = [...players].sort((a, b) => getAverageElo(b) - getAverageElo(a)).slice(0, 5);
   const recentMatches = matches.slice(0, 5);
 
   if (loading) {
@@ -84,7 +89,7 @@ export default function Home() {
                 <span className="text-slate-400 text-sm mr-4">
                   {player.wins}W - {player.losses}L
                 </span>
-                <span className="text-[#4ade80] font-semibold">{player.elo.toFixed(2)}</span>
+                <span className="text-[#4ade80] font-semibold">{getAverageElo(player).toFixed(0)}</span>
               </div>
             ))
           )}

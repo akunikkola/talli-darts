@@ -105,7 +105,9 @@ export default function RankingSetup() {
             <p className="text-white font-bold text-lg">{player1?.name || "Select"}</p>
             {player1 && (
               <>
-                <p className="text-white/70 text-xs mt-1">ELO: {player1.elo.toFixed(2)}</p>
+                <p className="text-white/70 text-xs mt-1">
+                  {gameMode} ELO: {(gameMode === "301" ? player1.elo301 : player1.elo501).toFixed(0)}
+                </p>
                 {starterIndex === 0 && (
                   <p className="text-white text-xs mt-1 font-semibold">▶ Starts</p>
                 )}
@@ -122,7 +124,9 @@ export default function RankingSetup() {
             <p className="text-white font-bold text-lg">{player2?.name || "Select"}</p>
             {player2 && (
               <>
-                <p className="text-white/70 text-xs mt-1">ELO: {player2.elo.toFixed(2)}</p>
+                <p className="text-white/70 text-xs mt-1">
+                  {gameMode} ELO: {(gameMode === "301" ? player2.elo301 : player2.elo501).toFixed(0)}
+                </p>
                 {starterIndex === 1 && (
                   <p className="text-white text-xs mt-1 font-semibold">▶ Starts</p>
                 )}
