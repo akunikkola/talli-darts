@@ -192,6 +192,8 @@ function CricketGameContent() {
       legsToWin: 1,
       isRanked: false,
       highestCheckout: 0,
+      player1HighestCheckout: 0,
+      player2HighestCheckout: 0,
       playerCount: cricketPlayers.length,
     });
 

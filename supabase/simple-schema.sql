@@ -54,6 +54,8 @@ create table public.matches (
   legs_to_win integer default 1 not null,
   is_ranked boolean default true not null,
   highest_checkout integer default 0 not null,
+  player1_highest_checkout integer default 0 not null,
+  player2_highest_checkout integer default 0 not null,
   played_at timestamptz default now() not null
 );
 

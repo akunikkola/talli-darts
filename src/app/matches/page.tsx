@@ -123,6 +123,8 @@ export default function Matches() {
       legsToWin: Math.max(newPlayer1Legs, newPlayer2Legs),
       isRanked: newIsRanked,
       highestCheckout: 0,
+      player1HighestCheckout: 0,
+      player2HighestCheckout: 0,
       playerCount: 2,
     });
 
@@ -253,11 +255,22 @@ export default function Matches() {
                       )}
                     </div>
                   </div>
-                  {/* Show checkout if recorded */}
-                  {match.highestCheckout > 0 && (
-                    <div className="mt-2 pt-2 border-t border-[#333] flex items-center justify-center gap-2">
-                      <span className="text-slate-500 text-xs">Checkout:</span>
-                      <span className="text-[#4ade80] font-bold">{match.highestCheckout}</span>
+                  {/* Show checkouts if recorded */}
+                  {(match.player1HighestCheckout > 0 || match.player2HighestCheckout > 0) && (
+                    <div className="mt-2 pt-2 border-t border-[#333] flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1">
+                        <span className="text-slate-500">{match.player1Name.split(' ')[0]}:</span>
+                        <span className={match.player1HighestCheckout > 0 ? "text-[#4ade80] font-bold" : "text-slate-600"}>
+                          {match.player1HighestCheckout > 0 ? match.player1HighestCheckout : "-"}
+                        </span>
+                      </div>
+                      <span className="text-slate-600">Checkouts</span>
+                      <div className="flex items-center gap-1">
+                        <span className={match.player2HighestCheckout > 0 ? "text-[#4ade80] font-bold" : "text-slate-600"}>
+                          {match.player2HighestCheckout > 0 ? match.player2HighestCheckout : "-"}
+                        </span>
+                        <span className="text-slate-500">:{match.player2Name.split(' ')[0]}</span>
+                      </div>
                     </div>
                   )}
                 </div>

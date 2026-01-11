@@ -32,8 +32,10 @@ interface GameState {
   pendingLegWin: { winnerIndex: number; winnerName: string } | null;
   // Track current leg number (1-indexed) to alternate starters
   currentLeg: number;
-  // Track highest checkout across all legs in the match
+  // Track highest checkout across all legs in the match (for backwards compatibility)
   matchHighestCheckout: number;
+  // Track each player's highest checkout separately
+  playerHighestCheckouts: number[];
 }
 
 function GameContent() {
@@ -119,6 +121,7 @@ function GameContent() {
       pendingLegWin: null,
       currentLeg: 1,
       matchHighestCheckout: 0,
+      playerHighestCheckouts: gamePlayers.map(() => 0),
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataLoading]);
@@ -166,7 +169,7 @@ function GameContent() {
   // Helper to round to 2 decimal places
   const roundTo2 = (n: number) => Math.round(n * 100) / 100;
 
-  const saveMatchResult = async (winnerIndex: number, winnerLegs: number, loserLegs: number, checkoutScore: number) => {
+  const saveMatchResult = async (winnerIndex: number, winnerLegs: number, loserLegs: number, checkoutScore: number, playerCheckouts: number[]) => {
     if (game.matchSaved || !game.isRanked || game.players.length !== 2) return;
 
     const winner = game.players[winnerIndex];
@@ -227,7 +230,7 @@ function GameContent() {
 
     await updatePlayer(loser.id, loserUpdates);
 
-    // Save match
+    // Save match with per-player checkouts
     await saveMatch({
       player1Id: game.players[0].id,
       player2Id: game.players[1].id,
@@ -247,13 +250,15 @@ function GameContent() {
       player1OneEighties: game.players[0].oneEighties,
       player2OneEighties: game.players[1].oneEighties,
       highestCheckout: checkoutScore,
+      player1HighestCheckout: playerCheckouts[0] || 0,
+      player2HighestCheckout: playerCheckouts[1] || 0,
       playerCount: 2,
     });
 
     setGame((prev) => prev ? { ...prev, matchSaved: true } : null);
   };
 
-  const savePracticeMatch = async (winnerIndex: number, finalLegs: number[], checkoutScore: number) => {
+  const savePracticeMatch = async (winnerIndex: number, finalLegs: number[], checkoutScore: number, playerCheckouts: number[]) => {
     if (game.matchSaved) return;
 
     const winner = game.players[winnerIndex];
@@ -281,6 +286,8 @@ function GameContent() {
         player1OneEighties: game.players[0].oneEighties,
         player2OneEighties: game.players[1].oneEighties,
         highestCheckout: checkoutScore,
+        player1HighestCheckout: playerCheckouts[0] || 0,
+        player2HighestCheckout: playerCheckouts[1] || 0,
         playerCount: 2,
       });
     } else {
@@ -305,6 +312,8 @@ function GameContent() {
         player1OneEighties: 0,
         player2OneEighties: 0,
         highestCheckout: checkoutScore,
+        player1HighestCheckout: playerCheckouts[winnerIndex] || 0,
+        player2HighestCheckout: 0,
         playerCount: playerCount,
         allPlayerNames: allPlayerNames,
       });
@@ -322,8 +331,12 @@ function GameContent() {
     // Get the checkout score (the score that won the leg)
     const legCheckout = game.players[winnerIndex].lastScore || 0;
 
-    // Track the highest checkout across all legs in this match
+    // Track the highest checkout across all legs in this match (for backwards compatibility)
     const newHighestCheckout = Math.max(game.matchHighestCheckout, legCheckout);
+
+    // Track each player's highest checkout separately
+    const newPlayerHighestCheckouts = [...game.playerHighestCheckouts];
+    newPlayerHighestCheckouts[winnerIndex] = Math.max(newPlayerHighestCheckouts[winnerIndex], legCheckout);
 
     // Calculate final leg counts for saving
     const finalLegs = game.players.map((p, i) =>
@@ -349,15 +362,16 @@ function GameContent() {
           matchWinner: newPlayers[winnerIndex].name,
           pendingLegWin: null,
           matchHighestCheckout: newHighestCheckout,
+          playerHighestCheckouts: newPlayerHighestCheckouts,
         };
       });
 
       // Save immediately with calculated values (not from state)
-      // Use the highest checkout across all legs, not just the final leg
+      // Pass both overall highest and per-player checkouts
       if (isRanked && game.players.length === 2) {
-        saveMatchResult(winnerIndex, newLegsWon, finalLegs[loserIndex], newHighestCheckout);
+        saveMatchResult(winnerIndex, newLegsWon, finalLegs[loserIndex], newHighestCheckout, newPlayerHighestCheckouts);
       } else {
-        savePracticeMatch(winnerIndex, finalLegs, newHighestCheckout);
+        savePracticeMatch(winnerIndex, finalLegs, newHighestCheckout, newPlayerHighestCheckouts);
       }
     } else {
       // Start new leg - alternate the starter
@@ -383,6 +397,7 @@ function GameContent() {
           pendingLegWin: null,
           currentLeg: nextLeg,
           matchHighestCheckout: newHighestCheckout,
+          playerHighestCheckouts: newPlayerHighestCheckouts,
         };
       });
       setLastAction(null);

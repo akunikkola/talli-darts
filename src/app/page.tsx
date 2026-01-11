@@ -28,15 +28,46 @@ export default function Home() {
   const topPlayers = [...players].sort((a, b) => getAverageElo(b) - getAverageElo(a)).slice(0, 5);
   const recentMatches = matches.slice(0, 5);
 
-  // Get weekly highest checkouts
+  // Get weekly highest checkouts - now includes both players' checkouts separately
   const weeklyCheckouts = useMemo(() => {
     const weekStart = getWeekStart();
-    return matches
-      .filter(m => {
-        const matchDate = new Date(m.playedAt);
-        return m.highestCheckout > 0 && matchDate >= weekStart;
-      })
-      .sort((a, b) => b.highestCheckout - a.highestCheckout)
+    const checkoutEntries: { playerName: string; checkout: number; playedAt: string; matchId: string }[] = [];
+
+    matches.forEach(m => {
+      const matchDate = new Date(m.playedAt);
+      if (matchDate >= weekStart) {
+        // Add player 1's checkout if > 0
+        if (m.player1HighestCheckout > 0) {
+          checkoutEntries.push({
+            playerName: m.player1Name,
+            checkout: m.player1HighestCheckout,
+            playedAt: m.playedAt,
+            matchId: m.id + '-p1',
+          });
+        }
+        // Add player 2's checkout if > 0
+        if (m.player2HighestCheckout > 0) {
+          checkoutEntries.push({
+            playerName: m.player2Name,
+            checkout: m.player2HighestCheckout,
+            playedAt: m.playedAt,
+            matchId: m.id + '-p2',
+          });
+        }
+        // Fallback to old highestCheckout field for backwards compatibility
+        if (m.player1HighestCheckout === 0 && m.player2HighestCheckout === 0 && m.highestCheckout > 0) {
+          checkoutEntries.push({
+            playerName: m.winnerName,
+            checkout: m.highestCheckout,
+            playedAt: m.playedAt,
+            matchId: m.id,
+          });
+        }
+      }
+    });
+
+    return checkoutEntries
+      .sort((a, b) => b.checkout - a.checkout)
       .slice(0, 3);
   }, [matches]);
 
@@ -53,8 +84,8 @@ export default function Home() {
       {/* Header */}
       <div className="text-center py-6">
         <h1 className="text-4xl font-bold text-white">Talli Darts</h1>
-        <p className="text-slate-400 mt-1">ELO Tracker</p>
-        <p className="text-slate-600 text-xs mt-1">v2.1</p>
+        <p className="text-slate-400 mt-1">Who do you think you are? I am!</p>
+        <p className="text-slate-600 text-xs mt-1">v2.2</p>
       </div>
 
       {/* Match Type Buttons */}
@@ -63,8 +94,8 @@ export default function Home() {
           href="/play/ranking"
           className="py-5 bg-[#4ade80] hover:bg-[#22c55e] text-black text-center rounded-2xl transition-colors"
         >
-          <span className="text-lg font-bold block">Ranking Match</span>
-          <span className="text-sm opacity-70">1v1 • ELO counted</span>
+          <span className="text-lg font-bold block">Official Match</span>
+          <span className="text-sm opacity-70">1v1 • For the record</span>
         </Link>
         <Link
           href="/play/practice"
@@ -208,9 +239,9 @@ export default function Home() {
           {weeklyCheckouts.length === 0 ? (
             <p className="text-slate-500 text-center py-4">No checkouts this week</p>
           ) : (
-            weeklyCheckouts.map((match, index) => (
+            weeklyCheckouts.map((entry, index) => (
               <div
-                key={match.id}
+                key={entry.matchId}
                 className="flex items-center px-4 py-3 border-b border-[#333] last:border-b-0"
               >
                 <span
@@ -225,12 +256,12 @@ export default function Home() {
                   {index + 1}
                 </span>
                 <div className="flex-1 ml-3">
-                  <span className="text-white font-medium">{match.winnerName}</span>
+                  <span className="text-white font-medium">{entry.playerName}</span>
                   <span className="text-slate-500 text-xs ml-2">
-                    {new Date(match.playedAt).toLocaleDateString("fi-FI", { weekday: "short" })}
+                    {new Date(entry.playedAt).toLocaleDateString("fi-FI", { weekday: "short" })}
                   </span>
                 </div>
-                <span className="text-[#4ade80] font-bold text-lg">{match.highestCheckout}</span>
+                <span className="text-[#4ade80] font-bold text-lg">{entry.checkout}</span>
               </div>
             ))
           )}

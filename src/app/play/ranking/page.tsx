@@ -88,7 +88,7 @@ export default function RankingSetup() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </Link>
-        <h1 className="flex-1 text-center text-white font-bold text-xl">Ranking Match</h1>
+        <h1 className="flex-1 text-center text-white font-bold text-xl">Official Match</h1>
         <div className="w-10" />
       </div>
 
@@ -259,7 +259,7 @@ export default function RankingSetup() {
             canStart ? "bg-[#4ade80] hover:bg-[#22c55e] text-black" : "bg-[#333] text-slate-500 cursor-not-allowed"
           }`}
         >
-          Start Ranking Match
+          Start Official Match
         </button>
       </div>
 

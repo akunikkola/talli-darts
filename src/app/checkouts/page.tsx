@@ -4,6 +4,14 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { useData } from "@/context/DataContext";
 
+interface CheckoutEntry {
+  playerName: string;
+  checkout: number;
+  playedAt: string;
+  matchId: string;
+  opponent: string;
+}
+
 // Get the start of the current week (Monday 00:00) in Finnish time
 const getWeekStart = () => {
   const now = new Date();
@@ -20,21 +28,54 @@ export default function CheckoutsPage() {
 
   const weekStart = useMemo(() => getWeekStart(), []);
 
-  // All checkouts sorted by score (highest first)
+  // Extract all checkout entries from matches (both players' checkouts)
   const allCheckouts = useMemo(() => {
-    return matches
-      .filter(m => m.highestCheckout > 0)
-      .sort((a, b) => b.highestCheckout - a.highestCheckout);
+    const entries: CheckoutEntry[] = [];
+
+    matches.forEach(m => {
+      // Add player 1's checkout if > 0
+      if (m.player1HighestCheckout > 0) {
+        entries.push({
+          playerName: m.player1Name,
+          checkout: m.player1HighestCheckout,
+          playedAt: m.playedAt,
+          matchId: m.id + '-p1',
+          opponent: m.player2Name,
+        });
+      }
+      // Add player 2's checkout if > 0
+      if (m.player2HighestCheckout > 0) {
+        entries.push({
+          playerName: m.player2Name,
+          checkout: m.player2HighestCheckout,
+          playedAt: m.playedAt,
+          matchId: m.id + '-p2',
+          opponent: m.player1Name,
+        });
+      }
+      // Fallback to old highestCheckout field for backwards compatibility
+      if (m.player1HighestCheckout === 0 && m.player2HighestCheckout === 0 && m.highestCheckout > 0) {
+        entries.push({
+          playerName: m.winnerName,
+          checkout: m.highestCheckout,
+          playedAt: m.playedAt,
+          matchId: m.id,
+          opponent: m.player1Name === m.winnerName ? m.player2Name : m.player1Name,
+        });
+      }
+    });
+
+    return entries.sort((a, b) => b.checkout - a.checkout);
   }, [matches]);
 
   // This week's checkouts
   const weeklyCheckouts = useMemo(() => {
-    return allCheckouts.filter(m => new Date(m.playedAt) >= weekStart);
+    return allCheckouts.filter(entry => new Date(entry.playedAt) >= weekStart);
   }, [allCheckouts, weekStart]);
 
   // All-time checkouts (excluding this week)
   const allTimeCheckouts = useMemo(() => {
-    return allCheckouts.filter(m => new Date(m.playedAt) < weekStart);
+    return allCheckouts.filter(entry => new Date(entry.playedAt) < weekStart);
   }, [allCheckouts, weekStart]);
 
   if (loading) {
@@ -74,9 +115,9 @@ export default function CheckoutsPage() {
             {weeklyCheckouts.length === 0 ? (
               <p className="text-slate-500 text-center py-4">No checkouts this week</p>
             ) : (
-              weeklyCheckouts.map((match, index) => (
+              weeklyCheckouts.map((entry, index) => (
                 <div
-                  key={match.id}
+                  key={entry.matchId}
                   className="flex items-center px-4 py-3 border-b border-[#333] last:border-b-0"
                 >
                   <span
@@ -93,14 +134,14 @@ export default function CheckoutsPage() {
                     {index + 1}
                   </span>
                   <div className="flex-1 ml-3">
-                    <span className="text-white font-medium">{match.winnerName}</span>
+                    <span className="text-white font-medium">{entry.playerName}</span>
                     <span className="text-slate-500 text-xs block">
-                      vs {match.player1Name === match.winnerName ? match.player2Name : match.player1Name}
+                      vs {entry.opponent}
                     </span>
                   </div>
                   <div className="text-right">
-                    <span className="text-[#4ade80] font-bold text-xl">{match.highestCheckout}</span>
-                    <span className="text-slate-500 text-xs block">{formatDate(match.playedAt)}</span>
+                    <span className="text-[#4ade80] font-bold text-xl">{entry.checkout}</span>
+                    <span className="text-slate-500 text-xs block">{formatDate(entry.playedAt)}</span>
                   </div>
                 </div>
               ))
@@ -115,23 +156,23 @@ export default function CheckoutsPage() {
             {allTimeCheckouts.length === 0 ? (
               <p className="text-slate-500 text-center py-4">No previous checkouts</p>
             ) : (
-              allTimeCheckouts.map((match, index) => (
+              allTimeCheckouts.map((entry, index) => (
                 <div
-                  key={match.id}
+                  key={entry.matchId}
                   className="flex items-center px-4 py-3 border-b border-[#333] last:border-b-0"
                 >
                   <span className="w-8 text-center font-bold text-slate-500">
                     {index + 1}
                   </span>
                   <div className="flex-1 ml-3">
-                    <span className="text-white font-medium">{match.winnerName}</span>
+                    <span className="text-white font-medium">{entry.playerName}</span>
                     <span className="text-slate-500 text-xs block">
-                      vs {match.player1Name === match.winnerName ? match.player2Name : match.player1Name}
+                      vs {entry.opponent}
                     </span>
                   </div>
                   <div className="text-right">
-                    <span className="text-white font-bold text-xl">{match.highestCheckout}</span>
-                    <span className="text-slate-500 text-xs block">{formatDate(match.playedAt)}</span>
+                    <span className="text-white font-bold text-xl">{entry.checkout}</span>
+                    <span className="text-slate-500 text-xs block">{formatDate(entry.playedAt)}</span>
                   </div>
                 </div>
               ))

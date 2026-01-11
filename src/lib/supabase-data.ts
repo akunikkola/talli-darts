@@ -45,6 +45,8 @@ interface DbMatch {
   legs_to_win: number;
   is_ranked: boolean;
   highest_checkout: number;
+  player1_highest_checkout: number;
+  player2_highest_checkout: number;
   played_at: string;
   player_count: number;
   all_player_names: string | null;
@@ -96,6 +98,8 @@ export interface MatchResult {
   legsToWin: number;
   isRanked: boolean;
   highestCheckout: number;
+  player1HighestCheckout: number;
+  player2HighestCheckout: number;
   playedAt: string;
   playerCount: number; // Number of players (2 for 1v1, more for multi-player)
   allPlayerNames?: string; // Comma-separated names for multi-player matches
@@ -177,6 +181,8 @@ function dbToMatch(db: DbMatch): MatchResult {
     legsToWin: db.legs_to_win,
     isRanked: db.is_ranked,
     highestCheckout: db.highest_checkout,
+    player1HighestCheckout: db.player1_highest_checkout || 0,
+    player2HighestCheckout: db.player2_highest_checkout || 0,
     playedAt: db.played_at,
     playerCount: db.player_count || 2,
     allPlayerNames: db.all_player_names || undefined,
@@ -205,6 +211,8 @@ function matchToDb(match: Partial<MatchResult> & { id: string }): Partial<DbMatc
     legs_to_win: match.legsToWin || 1,
     is_ranked: match.isRanked ?? true,
     highest_checkout: match.highestCheckout || 0,
+    player1_highest_checkout: match.player1HighestCheckout || 0,
+    player2_highest_checkout: match.player2HighestCheckout || 0,
     played_at: match.playedAt || new Date().toISOString(),
     player_count: match.playerCount || 2,
     all_player_names: match.allPlayerNames || null,
