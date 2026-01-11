@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getMatches, updateMatch, deleteMatch, addManualMatch, type MatchResult } from "@/lib/matches";
-import { getPlayers, type Player } from "@/lib/players";
+import { getMatches, updateMatch, deleteMatchAndRevertStats, addManualMatch, type MatchResult } from "@/lib/matches";
+import { getPlayers, getPlayer, updatePlayer, type Player } from "@/lib/players";
 
 export default function Matches() {
   const [matches, setMatches] = useState<MatchResult[]>([]);
@@ -78,8 +78,10 @@ export default function Matches() {
 
   const handleDeleteMatch = () => {
     if (!showConfirmDelete) return;
-    deleteMatch(showConfirmDelete.id);
+    // Delete match and revert all related stats (ELO, wins, losses, legs, 180s)
+    deleteMatchAndRevertStats(showConfirmDelete.id, getPlayer, updatePlayer);
     setShowConfirmDelete(null);
+    setEditingMatch(null);
     loadData();
   };
 
@@ -478,10 +480,15 @@ export default function Matches() {
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
           <div className="bg-[#2a2a2a] rounded-2xl p-6 w-full max-w-sm">
             <h3 className="text-white font-bold text-xl mb-2">Delete Match?</h3>
-            <p className="text-slate-400 mb-6">
+            <p className="text-slate-400 mb-2">
               {showConfirmDelete.player1Name} vs {showConfirmDelete.player2Name} ({showConfirmDelete.player1Legs}-{showConfirmDelete.player2Legs})
             </p>
-            <div className="grid grid-cols-2 gap-3">
+            {showConfirmDelete.isRanked && (
+              <p className="text-amber-400 text-sm mb-4">
+                This will also revert ELO changes, wins/losses, and all stats from this match.
+              </p>
+            )}
+            <div className="grid grid-cols-2 gap-3 mt-4">
               <button
                 onClick={() => {
                   setShowConfirmDelete(null);

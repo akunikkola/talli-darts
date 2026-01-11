@@ -159,3 +159,28 @@ export function getTalliPlayers(): Player[] {
 export function getVisitorPlayers(): Player[] {
   return getPlayers().filter((p) => p.group === "visitor");
 }
+
+/**
+ * Reset all stats for all players (ELO, wins, losses, legs, 180s)
+ * Keeps player profiles (name, club, etc.)
+ */
+export function resetAllStats(): void {
+  const players = getPlayers();
+  const resetPlayers = players.map((player) => ({
+    ...player,
+    elo: 1000,
+    elo301: 1000,
+    elo501: 1000,
+    wins: 0,
+    losses: 0,
+    wins301: 0,
+    losses301: 0,
+    wins501: 0,
+    losses501: 0,
+    legsWon: 0,
+    legsLost: 0,
+    oneEighties: 0,
+    highestCheckout: 0,
+  }));
+  savePlayers(resetPlayers);
+}

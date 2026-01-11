@@ -118,6 +118,109 @@ export function deleteMatch(id: string): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(matches));
 }
 
+/**
+ * Delete a match and revert all related player stats
+ * This reverses: ELO changes, wins/losses, legs, 180s
+ */
+export function deleteMatchAndRevertStats(
+  id: string,
+  getPlayer: (id: string) => {
+    id: string;
+    elo: number;
+    elo301: number;
+    elo501: number;
+    wins: number;
+    losses: number;
+    wins301: number;
+    losses301: number;
+    wins501: number;
+    losses501: number;
+    legsWon: number;
+    legsLost: number;
+    oneEighties: number;
+  } | undefined,
+  updatePlayer: (id: string, updates: Record<string, number>) => void
+): boolean {
+  const matches = getMatches();
+  const match = matches.find((m) => m.id === id);
+
+  if (!match) return false;
+
+  // Only revert stats for ranked matches (they're the only ones that affect ELO)
+  if (match.isRanked) {
+    const player1 = getPlayer(match.player1Id);
+    const player2 = getPlayer(match.player2Id);
+
+    if (player1) {
+      const isWinner = match.winnerId === match.player1Id;
+      const updates: Record<string, number> = {
+        // Revert ELO change
+        elo: roundTo2(player1.elo - match.player1EloChange),
+        // Revert wins/losses
+        wins: isWinner ? Math.max(0, player1.wins - 1) : player1.wins,
+        losses: !isWinner ? Math.max(0, player1.losses - 1) : player1.losses,
+        // Revert legs
+        legsWon: Math.max(0, player1.legsWon - match.player1Legs),
+        legsLost: Math.max(0, player1.legsLost - match.player2Legs),
+        // Revert 180s
+        oneEighties: Math.max(0, player1.oneEighties - match.player1OneEighties),
+      };
+
+      // Revert game-specific ELO and wins/losses
+      if (match.gameMode === "301") {
+        updates.elo301 = roundTo2(player1.elo301 - match.player1EloChange);
+        updates.wins301 = isWinner ? Math.max(0, player1.wins301 - 1) : player1.wins301;
+        updates.losses301 = !isWinner ? Math.max(0, player1.losses301 - 1) : player1.losses301;
+      } else if (match.gameMode === "501") {
+        updates.elo501 = roundTo2(player1.elo501 - match.player1EloChange);
+        updates.wins501 = isWinner ? Math.max(0, player1.wins501 - 1) : player1.wins501;
+        updates.losses501 = !isWinner ? Math.max(0, player1.losses501 - 1) : player1.losses501;
+      }
+
+      updatePlayer(match.player1Id, updates);
+    }
+
+    if (player2) {
+      const isWinner = match.winnerId === match.player2Id;
+      const updates: Record<string, number> = {
+        // Revert ELO change
+        elo: roundTo2(player2.elo - match.player2EloChange),
+        // Revert wins/losses
+        wins: isWinner ? Math.max(0, player2.wins - 1) : player2.wins,
+        losses: !isWinner ? Math.max(0, player2.losses - 1) : player2.losses,
+        // Revert legs
+        legsWon: Math.max(0, player2.legsWon - match.player2Legs),
+        legsLost: Math.max(0, player2.legsLost - match.player1Legs),
+        // Revert 180s
+        oneEighties: Math.max(0, player2.oneEighties - match.player2OneEighties),
+      };
+
+      // Revert game-specific ELO and wins/losses
+      if (match.gameMode === "301") {
+        updates.elo301 = roundTo2(player2.elo301 - match.player2EloChange);
+        updates.wins301 = isWinner ? Math.max(0, player2.wins301 - 1) : player2.wins301;
+        updates.losses301 = !isWinner ? Math.max(0, player2.losses301 - 1) : player2.losses301;
+      } else if (match.gameMode === "501") {
+        updates.elo501 = roundTo2(player2.elo501 - match.player2EloChange);
+        updates.wins501 = isWinner ? Math.max(0, player2.wins501 - 1) : player2.wins501;
+        updates.losses501 = !isWinner ? Math.max(0, player2.losses501 - 1) : player2.losses501;
+      }
+
+      updatePlayer(match.player2Id, updates);
+    }
+  }
+
+  // Delete the match
+  const remainingMatches = matches.filter((m) => m.id !== id);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(remainingMatches));
+  return true;
+}
+
+// Helper function for rounding
+function roundTo2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
 export function addManualMatch(match: Omit<MatchResult, "id" | "playedAt"> & { playedAt?: string }): MatchResult {
   const matches = getMatches();
   const newMatch: MatchResult = {

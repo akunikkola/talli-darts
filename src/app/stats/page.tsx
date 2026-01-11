@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getPlayers, type Player } from "@/lib/players";
-import { getMatches, type MatchResult } from "@/lib/matches";
+import { getPlayers, resetAllStats, type Player } from "@/lib/players";
+import { getMatches, clearMatches, type MatchResult } from "@/lib/matches";
 
 interface Stats {
   totalMatches: number;
@@ -25,8 +25,9 @@ export default function StatsPage() {
     highestElo: null,
     biggestRivalry: null,
   });
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
-  useEffect(() => {
+  const loadStats = () => {
     const players = getPlayers();
     const matches = getMatches();
 
@@ -66,7 +67,18 @@ export default function StatsPage() {
       highestElo: sortedByElo[0] || null,
       biggestRivalry: maxMatches > 1 ? biggestRivalry : null,
     });
+  };
+
+  useEffect(() => {
+    loadStats();
   }, []);
+
+  const handleResetAll = () => {
+    resetAllStats();
+    clearMatches();
+    setShowResetConfirm(false);
+    loadStats();
+  };
 
   const StatCard = ({ label, value, subtext }: { label: string; value: string | number; subtext?: string }) => (
     <div className="bg-[#2a2a2a] rounded-xl p-4">
@@ -150,7 +162,55 @@ export default function StatsPage() {
             </Link>
           </div>
         )}
+
+        {/* Reset All Stats Button */}
+        <div className="pt-8 pb-4">
+          <button
+            onClick={() => setShowResetConfirm(true)}
+            className="w-full py-3 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-xl font-semibold transition-colors"
+          >
+            Reset All Stats
+          </button>
+          <p className="text-slate-500 text-xs text-center mt-2">
+            Resets all ELO to 1000 and clears match history
+          </p>
+        </div>
       </div>
+
+      {/* Reset Confirmation Modal */}
+      {showResetConfirm && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#2a2a2a] rounded-2xl p-6 w-full max-w-sm">
+            <h3 className="text-white font-bold text-xl mb-2">Reset All Stats?</h3>
+            <p className="text-slate-400 mb-2">
+              This will:
+            </p>
+            <ul className="text-slate-400 text-sm mb-4 space-y-1">
+              <li>• Reset all players to 1000 ELO</li>
+              <li>• Clear all wins, losses, and legs</li>
+              <li>• Clear all 180s and checkouts</li>
+              <li>• Delete all match history</li>
+            </ul>
+            <p className="text-amber-400 text-sm mb-4">
+              This action cannot be undone!
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setShowResetConfirm(false)}
+                className="py-3 bg-[#444] hover:bg-[#555] text-white rounded-xl font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleResetAll}
+                className="py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold"
+              >
+                Reset All
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
