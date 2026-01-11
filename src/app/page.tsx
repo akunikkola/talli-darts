@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo } from "react";
 import { useData } from "@/context/DataContext";
 
 // Calculate average ELO from 301 and 501 ratings
@@ -8,11 +9,36 @@ const getAverageElo = (player: { elo301: number; elo501: number }) => {
   return (player.elo301 + player.elo501) / 2;
 };
 
+// Get the start of the current week (Monday 00:00) in Finnish time
+const getWeekStart = () => {
+  const now = new Date();
+  // Convert to Finnish time (Europe/Helsinki)
+  const finnishTime = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Helsinki" }));
+  const day = finnishTime.getDay();
+  // Adjust so Monday = 0, Sunday = 6
+  const daysFromMonday = day === 0 ? 6 : day - 1;
+  finnishTime.setDate(finnishTime.getDate() - daysFromMonday);
+  finnishTime.setHours(0, 0, 0, 0);
+  return finnishTime;
+};
+
 export default function Home() {
   const { players, matches, loading } = useData();
 
   const topPlayers = [...players].sort((a, b) => getAverageElo(b) - getAverageElo(a)).slice(0, 5);
   const recentMatches = matches.slice(0, 5);
+
+  // Get weekly highest checkouts
+  const weeklyCheckouts = useMemo(() => {
+    const weekStart = getWeekStart();
+    return matches
+      .filter(m => {
+        const matchDate = new Date(m.playedAt);
+        return m.highestCheckout > 0 && matchDate >= weekStart;
+      })
+      .sort((a, b) => b.highestCheckout - a.highestCheckout)
+      .slice(0, 3);
+  }, [matches]);
 
   if (loading) {
     return (
@@ -90,6 +116,47 @@ export default function Home() {
                   {player.wins}W - {player.losses}L
                 </span>
                 <span className="text-[#4ade80] font-semibold">{getAverageElo(player).toFixed(0)}</span>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Weekly Highest Checkouts */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-white font-semibold">Checkouts This Week</h2>
+          <Link href="/checkouts" className="text-[#4ade80] text-sm">
+            See all
+          </Link>
+        </div>
+        <div className="bg-[#2a2a2a] rounded-xl overflow-hidden">
+          {weeklyCheckouts.length === 0 ? (
+            <p className="text-slate-500 text-center py-4">No checkouts this week</p>
+          ) : (
+            weeklyCheckouts.map((match, index) => (
+              <div
+                key={match.id}
+                className="flex items-center px-4 py-3 border-b border-[#333] last:border-b-0"
+              >
+                <span
+                  className={`w-6 text-center font-bold ${
+                    index === 0
+                      ? "text-yellow-400"
+                      : index === 1
+                      ? "text-slate-300"
+                      : "text-amber-600"
+                  }`}
+                >
+                  {index + 1}
+                </span>
+                <div className="flex-1 ml-3">
+                  <span className="text-white font-medium">{match.winnerName}</span>
+                  <span className="text-slate-500 text-xs ml-2">
+                    {new Date(match.playedAt).toLocaleDateString("fi-FI", { weekday: "short" })}
+                  </span>
+                </div>
+                <span className="text-[#4ade80] font-bold text-lg">{match.highestCheckout}</span>
               </div>
             ))
           )}

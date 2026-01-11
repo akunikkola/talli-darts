@@ -152,7 +152,7 @@ function GameContent() {
   // Helper to round to 2 decimal places
   const roundTo2 = (n: number) => Math.round(n * 100) / 100;
 
-  const saveMatchResult = async (winnerIndex: number, winnerLegs: number, loserLegs: number) => {
+  const saveMatchResult = async (winnerIndex: number, winnerLegs: number, loserLegs: number, checkoutScore: number) => {
     if (game.matchSaved || !game.isRanked || game.players.length !== 2) return;
 
     const winner = game.players[winnerIndex];
@@ -232,14 +232,14 @@ function GameContent() {
       player2Avg: parseFloat(getAverage(game.players[1])),
       player1OneEighties: game.players[0].oneEighties,
       player2OneEighties: game.players[1].oneEighties,
-      highestCheckout: 0,
+      highestCheckout: checkoutScore,
       playerCount: 2,
     });
 
     setGame((prev) => prev ? { ...prev, matchSaved: true } : null);
   };
 
-  const savePracticeMatch = async (winnerIndex: number, finalLegs: number[]) => {
+  const savePracticeMatch = async (winnerIndex: number, finalLegs: number[], checkoutScore: number) => {
     if (game.matchSaved) return;
 
     const winner = game.players[winnerIndex];
@@ -266,7 +266,7 @@ function GameContent() {
         player2Avg: parseFloat(getAverage(game.players[1])),
         player1OneEighties: game.players[0].oneEighties,
         player2OneEighties: game.players[1].oneEighties,
-        highestCheckout: 0,
+        highestCheckout: checkoutScore,
         playerCount: 2,
       });
     } else {
@@ -290,7 +290,7 @@ function GameContent() {
         player2Avg: 0,
         player1OneEighties: 0,
         player2OneEighties: 0,
-        highestCheckout: 0,
+        highestCheckout: checkoutScore,
         playerCount: playerCount,
         allPlayerNames: allPlayerNames,
       });
@@ -304,6 +304,9 @@ function GameContent() {
 
     const { winnerIndex } = game.pendingLegWin;
     const newLegsWon = game.players[winnerIndex].legsWon + 1;
+
+    // Get the checkout score (the score that won the leg)
+    const checkoutScore = game.players[winnerIndex].lastScore || 0;
 
     // Calculate final leg counts for saving
     const finalLegs = game.players.map((p, i) =>
@@ -333,9 +336,9 @@ function GameContent() {
 
       // Save immediately with calculated values (not from state)
       if (isRanked && game.players.length === 2) {
-        saveMatchResult(winnerIndex, newLegsWon, finalLegs[loserIndex]);
+        saveMatchResult(winnerIndex, newLegsWon, finalLegs[loserIndex], checkoutScore);
       } else {
-        savePracticeMatch(winnerIndex, finalLegs);
+        savePracticeMatch(winnerIndex, finalLegs, checkoutScore);
       }
     } else {
       // Start new leg - alternate the starter
