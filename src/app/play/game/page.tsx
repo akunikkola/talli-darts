@@ -59,6 +59,8 @@ function GameContent() {
   } | null>(null);
   const [showConfirmLeave, setShowConfirmLeave] = useState(false);
   const [showThrowsHistory, setShowThrowsHistory] = useState(false);
+  // Prevent ghost clicks on match winner overlay
+  const [matchResultReady, setMatchResultReady] = useState(false);
   const [editingThrow, setEditingThrow] = useState<{
     playerIndex: number;
     throwIndex: number;
@@ -120,6 +122,15 @@ function GameContent() {
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataLoading]);
+
+  // Delay before match winner buttons become interactive (prevents ghost clicks)
+  useEffect(() => {
+    if (game?.matchWinner) {
+      setMatchResultReady(false);
+      const timer = setTimeout(() => setMatchResultReady(true), 800);
+      return () => clearTimeout(timer);
+    }
+  }, [game?.matchWinner]);
 
   if (!game) {
     return (
@@ -614,20 +625,24 @@ function GameContent() {
             {!game.isRanked && (
               <p className="text-[#f5a623] text-sm mb-6">Practice match - ELO unchanged</p>
             )}
-            <div className="space-y-3">
-              <button
-                onClick={handleNewGame}
-                className="w-full py-4 px-8 bg-[#4ade80] hover:bg-[#22c55e] rounded-full text-xl font-semibold text-black"
-              >
-                Done
-              </button>
-              <button
-                onClick={handleRematch}
-                className="w-full py-4 px-8 bg-slate-700 hover:bg-slate-600 rounded-full text-xl font-semibold text-white"
-              >
-                Rematch
-              </button>
-            </div>
+            {matchResultReady ? (
+              <div className="space-y-3">
+                <button
+                  onClick={handleNewGame}
+                  className="w-full py-4 px-8 bg-[#4ade80] hover:bg-[#22c55e] rounded-full text-xl font-semibold text-black"
+                >
+                  Done
+                </button>
+                <button
+                  onClick={handleRematch}
+                  className="w-full py-4 px-8 bg-slate-700 hover:bg-slate-600 rounded-full text-xl font-semibold text-white"
+                >
+                  Rematch
+                </button>
+              </div>
+            ) : (
+              <p className="text-slate-500 text-sm mt-4">Saving match...</p>
+            )}
           </div>
         </div>
       )}
