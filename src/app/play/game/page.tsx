@@ -616,16 +616,16 @@ function GameContent() {
             )}
             <div className="space-y-3">
               <button
-                onClick={handleRematch}
+                onClick={handleNewGame}
                 className="w-full py-4 px-8 bg-[#4ade80] hover:bg-[#22c55e] rounded-full text-xl font-semibold text-black"
               >
-                Rematch
+                Done
               </button>
               <button
-                onClick={handleNewGame}
+                onClick={handleRematch}
                 className="w-full py-4 px-8 bg-slate-700 hover:bg-slate-600 rounded-full text-xl font-semibold text-white"
               >
-                Home
+                Rematch
               </button>
             </div>
           </div>
