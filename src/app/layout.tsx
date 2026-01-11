@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Talli Darts",
-  description: "Darts ELO tracker for your friend group",
+  description: "Official Talli Darts scoring app. Track matches, ELO ratings, and compete with your crew.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

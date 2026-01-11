@@ -1,7 +1,7 @@
 {
   "name": "Talli Darts",
   "short_name": "Talli",
-  "description": "Darts ELO tracker for your friend group",
+  "description": "Official Talli Darts scoring app. Track matches, ELO ratings, and compete with your crew.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",
