@@ -61,7 +61,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       // Subscribe to real-time updates
       unsubPlayers = subscribeToPlayers((data) => {
-        setPlayers(data);
+        // Deduplicate players by name (keep first occurrence, which has stats)
+        const uniquePlayers = data.filter((player, index, self) =>
+          index === self.findIndex(p => p.name === player.name)
+        );
+        setPlayers(uniquePlayers);
         setLoading(false);
       });
 
