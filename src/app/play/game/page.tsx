@@ -721,10 +721,26 @@ function GameContent() {
     if (game.gameOver || game.pendingLegWin) return;
     if (game.currentDarts.length >= 3) return;
 
-    const multiplier = game.selectedMultiplier;
-    const score = getDartScore(multiplier, value);
+    // Handle bull (50) and outer (25) as direct score inputs
+    let multiplier: DartMultiplier;
+    let score: number;
+    let dartValue: number;
 
-    const newDart: DartThrow = { multiplier, value, score };
+    if (value === 50) {
+      multiplier = "bull";
+      score = 50;
+      dartValue = 50;
+    } else if (value === 25) {
+      multiplier = "outer";
+      score = 25;
+      dartValue = 25;
+    } else {
+      multiplier = game.selectedMultiplier;
+      score = getDartScore(multiplier, value);
+      dartValue = value;
+    }
+
+    const newDart: DartThrow = { multiplier, value: dartValue, score };
     const newDarts = [...game.currentDarts, newDart];
     const total = newDarts.reduce((sum, d) => sum + d.score, 0);
     const newRemaining = currentPlayer.remaining - total;
@@ -1186,29 +1202,37 @@ function GameContent() {
       </div>
       )}
 
-      {/* Dart Mode: Mode Toggle */}
+      {/* Dart Mode: Mode Toggle + All Throws */}
       {game.inputMode === "dart" && (
       <div className="px-4 mb-2">
-        <button
-          onClick={() => setShowModeSelector(true)}
-          className="flex items-center gap-2 bg-[#2a2a2a] hover:bg-[#333] px-3 py-2 rounded-lg text-slate-400 hover:text-white transition-colors"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-            <rect x="3" y="3" width="4" height="4" rx="0.5" />
-            <rect x="10" y="3" width="4" height="4" rx="0.5" />
-            <rect x="17" y="3" width="4" height="4" rx="0.5" />
-            <rect x="3" y="10" width="4" height="4" rx="0.5" />
-            <rect x="10" y="10" width="4" height="4" rx="0.5" />
-            <rect x="17" y="10" width="4" height="4" rx="0.5" />
-            <rect x="3" y="17" width="4" height="4" rx="0.5" />
-            <rect x="10" y="17" width="4" height="4" rx="0.5" />
-            <rect x="17" y="17" width="4" height="4" rx="0.5" />
-          </svg>
-          <span className="text-sm font-medium">Dart</span>
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowModeSelector(true)}
+            className="flex items-center gap-2 bg-[#2a2a2a] hover:bg-[#333] px-3 py-2 rounded-lg text-slate-400 hover:text-white transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+              <rect x="3" y="3" width="4" height="4" rx="0.5" />
+              <rect x="10" y="3" width="4" height="4" rx="0.5" />
+              <rect x="17" y="3" width="4" height="4" rx="0.5" />
+              <rect x="3" y="10" width="4" height="4" rx="0.5" />
+              <rect x="10" y="10" width="4" height="4" rx="0.5" />
+              <rect x="17" y="10" width="4" height="4" rx="0.5" />
+              <rect x="3" y="17" width="4" height="4" rx="0.5" />
+              <rect x="10" y="17" width="4" height="4" rx="0.5" />
+              <rect x="17" y="17" width="4" height="4" rx="0.5" />
+            </svg>
+            <span className="text-sm font-medium">Dart</span>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          <button
+            onClick={() => setShowThrowsHistory(true)}
+            className="flex-1 py-2 bg-[#2a2a2a] hover:bg-[#333] text-slate-400 hover:text-white rounded-lg text-sm font-medium transition-colors"
+          >
+            All throws
+          </button>
+        </div>
       </div>
       )}
 
@@ -1296,18 +1320,14 @@ function GameContent() {
       {game.inputMode === "dart" && (
       <div className="px-4 mb-2">
         <div className="flex gap-1">
-          {(["single", "double", "treble", "bull", "outer"] as DartMultiplier[]).map((mult) => (
+          {(["single", "double", "treble"] as DartMultiplier[]).map((mult) => (
             <button
               key={mult}
               onClick={() => handleMultiplierSelect(mult)}
               disabled={game.gameOver || !!game.pendingLegWin}
               className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase transition-colors ${
                 game.selectedMultiplier === mult
-                  ? mult === "bull"
-                    ? "bg-red-500 text-white"
-                    : mult === "outer"
-                    ? "bg-green-600 text-white"
-                    : mult === "double"
+                  ? mult === "double"
                     ? "bg-blue-500 text-white"
                     : mult === "treble"
                     ? "bg-purple-500 text-white"
@@ -1315,9 +1335,25 @@ function GameContent() {
                   : "bg-[#2a2a2a] text-slate-400 hover:text-white"
               }`}
             >
-              {mult === "bull" ? "Bull" : mult === "outer" ? "25" : mult.charAt(0).toUpperCase()}
+              {mult.charAt(0).toUpperCase()}
             </button>
           ))}
+          {/* Bull (50) - direct score button */}
+          <button
+            onClick={() => handleDartInput(50)}
+            disabled={game.gameOver || !!game.pendingLegWin || game.currentDarts.length >= 3}
+            className="flex-1 py-2 rounded-lg text-xs font-bold uppercase transition-colors bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white"
+          >
+            Bull
+          </button>
+          {/* Outer (25) - direct score button */}
+          <button
+            onClick={() => handleDartInput(25)}
+            disabled={game.gameOver || !!game.pendingLegWin || game.currentDarts.length >= 3}
+            className="flex-1 py-2 rounded-lg text-xs font-bold uppercase transition-colors bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white"
+          >
+            25
+          </button>
         </div>
       </div>
       )}
