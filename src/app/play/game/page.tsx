@@ -1164,23 +1164,21 @@ function GameContent() {
           <button
             onClick={() => handleQuickScore(26)}
             disabled={game.gameOver || !!game.pendingLegWin}
-            className="flex-1 py-3 bg-[#2a2a2a] hover:bg-[#333] disabled:opacity-50 text-white rounded-lg font-medium flex flex-col items-center"
+            className="flex-1 py-1.5 bg-[#2a2a2a] hover:bg-[#333] disabled:opacity-50 text-white rounded-lg font-medium"
           >
-            <span className="text-lg">26</span>
-            <span className="text-slate-400 text-xs">Hamina</span>
+            26 <span className="text-slate-400 text-xs">Hamina</span>
           </button>
           <button
             onClick={() => handleQuickScore(29)}
             disabled={game.gameOver || !!game.pendingLegWin}
-            className="flex-1 py-3 bg-[#2a2a2a] hover:bg-[#333] disabled:opacity-50 text-white rounded-lg font-medium flex flex-col items-center"
+            className="flex-1 py-1.5 bg-[#2a2a2a] hover:bg-[#333] disabled:opacity-50 text-white rounded-lg font-medium"
           >
-            <span className="text-lg">29</span>
-            <span className="text-slate-400 text-xs">Hanko</span>
+            29 <span className="text-slate-400 text-xs">Hanko</span>
           </button>
           <button
             onClick={() => handleQuickScore(180)}
             disabled={game.gameOver || !!game.pendingLegWin}
-            className="flex-1 py-3 bg-[#f5a623] hover:bg-[#d98f1e] disabled:opacity-50 text-black rounded-lg font-bold text-lg"
+            className="flex-1 py-1.5 bg-[#f5a623] hover:bg-[#d98f1e] disabled:opacity-50 text-black rounded-lg font-bold"
           >
             180
           </button>
