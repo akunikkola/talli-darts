@@ -37,6 +37,8 @@ interface DbMatch {
   player2_legs: number;
   player1_elo_change: number;
   player2_elo_change: number;
+  player1_elo_start: number;
+  player2_elo_start: number;
   player1_avg: number;
   player2_avg: number;
   player1_one_eighties: number;
@@ -90,6 +92,8 @@ export interface MatchResult {
   player2Legs: number;
   player1EloChange: number;
   player2EloChange: number;
+  player1EloStart: number;
+  player2EloStart: number;
   player1Avg: number;
   player2Avg: number;
   player1OneEighties: number;
@@ -173,6 +177,8 @@ function dbToMatch(db: DbMatch): MatchResult {
     player2Legs: db.player2_legs,
     player1EloChange: db.player1_elo_change,
     player2EloChange: db.player2_elo_change,
+    player1EloStart: db.player1_elo_start || 1000,
+    player2EloStart: db.player2_elo_start || 1000,
     player1Avg: db.player1_avg,
     player2Avg: db.player2_avg,
     player1OneEighties: db.player1_one_eighties,
@@ -203,6 +209,8 @@ function matchToDb(match: Partial<MatchResult> & { id: string }): Partial<DbMatc
     player2_legs: match.player2Legs || 0,
     player1_elo_change: match.player1EloChange || 0,
     player2_elo_change: match.player2EloChange || 0,
+    player1_elo_start: match.player1EloStart || 1000,
+    player2_elo_start: match.player2EloStart || 1000,
     player1_avg: match.player1Avg || 0,
     player2_avg: match.player2Avg || 0,
     player1_one_eighties: match.player1OneEighties || 0,

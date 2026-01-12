@@ -115,6 +115,8 @@ export default function Matches() {
       player2Legs: newPlayer2Legs,
       player1EloChange: 0,
       player2EloChange: 0,
+      player1EloStart: player1.elo,
+      player2EloStart: player2.elo,
       player1Avg: 0,
       player2Avg: 0,
       player1OneEighties: 0,

@@ -195,6 +195,9 @@ export default function MatchDetail() {
               >
                 {match.player1Name}
               </p>
+              <p className="text-slate-500 text-xs">
+                {match.player1EloStart.toFixed(0)} ELO
+              </p>
               {match.isRanked && (
                 <p
                   className={`text-xs ${
@@ -234,6 +237,9 @@ export default function MatchDetail() {
                 }`}
               >
                 {match.player2Name}
+              </p>
+              <p className="text-slate-500 text-xs">
+                {match.player2EloStart.toFixed(0)} ELO
               </p>
               {match.isRanked && (
                 <p
