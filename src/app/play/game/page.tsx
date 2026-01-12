@@ -84,6 +84,7 @@ function GameContent() {
     currentValue: number;
   } | null>(null);
   const [editThrowValue, setEditThrowValue] = useState("");
+  const [showModeSelector, setShowModeSelector] = useState(false);
 
   useEffect(() => {
     // Only initialize the game once - don't re-run when player data updates
@@ -1069,6 +1070,87 @@ function GameContent() {
         </div>
       )}
 
+      {/* Mode Selector Popup */}
+      {showModeSelector && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50" onClick={() => setShowModeSelector(false)}>
+          <div className="bg-[#2a2a2a] rounded-2xl p-4 w-64" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-white font-bold text-center mb-4">Input Mode</h3>
+            <div className="space-y-2">
+              <button
+                onClick={() => {
+                  handleModeToggle("round");
+                  setShowModeSelector(false);
+                }}
+                className={`w-full py-3 px-4 rounded-xl font-medium transition-colors flex items-center gap-3 ${
+                  game.inputMode === "round"
+                    ? "bg-[#4ade80] text-black"
+                    : "bg-[#1a1a1a] text-white hover:bg-[#333]"
+                }`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                Round Total
+              </button>
+              <button
+                onClick={() => {
+                  handleModeToggle("dart");
+                  setShowModeSelector(false);
+                }}
+                className={`w-full py-3 px-4 rounded-xl font-medium transition-colors flex items-center gap-3 ${
+                  game.inputMode === "dart"
+                    ? "bg-[#4ade80] text-black"
+                    : "bg-[#1a1a1a] text-white hover:bg-[#333]"
+                }`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                  <rect x="3" y="3" width="4" height="4" rx="0.5" />
+                  <rect x="10" y="3" width="4" height="4" rx="0.5" />
+                  <rect x="17" y="3" width="4" height="4" rx="0.5" />
+                  <rect x="3" y="10" width="4" height="4" rx="0.5" />
+                  <rect x="10" y="10" width="4" height="4" rx="0.5" />
+                  <rect x="17" y="10" width="4" height="4" rx="0.5" />
+                  <rect x="3" y="17" width="4" height="4" rx="0.5" />
+                  <rect x="10" y="17" width="4" height="4" rx="0.5" />
+                  <rect x="17" y="17" width="4" height="4" rx="0.5" />
+                </svg>
+                Dart by Dart
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mode Toggle Icon Button */}
+      <div className="px-4 mb-2">
+        <button
+          onClick={() => setShowModeSelector(true)}
+          className="flex items-center gap-2 bg-[#2a2a2a] hover:bg-[#333] px-3 py-2 rounded-lg text-slate-400 hover:text-white transition-colors"
+        >
+          {game.inputMode === "round" ? (
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+              <rect x="3" y="3" width="4" height="4" rx="0.5" />
+              <rect x="10" y="3" width="4" height="4" rx="0.5" />
+              <rect x="17" y="3" width="4" height="4" rx="0.5" />
+              <rect x="3" y="10" width="4" height="4" rx="0.5" />
+              <rect x="10" y="10" width="4" height="4" rx="0.5" />
+              <rect x="17" y="10" width="4" height="4" rx="0.5" />
+              <rect x="3" y="17" width="4" height="4" rx="0.5" />
+              <rect x="10" y="17" width="4" height="4" rx="0.5" />
+              <rect x="17" y="17" width="4" height="4" rx="0.5" />
+            </svg>
+          )}
+          <span className="text-sm font-medium">{game.inputMode === "round" ? "Round" : "Dart"}</span>
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      </div>
+
       {/* Quick Score Buttons & All Throws (only in round mode) */}
       {game.inputMode === "round" && (
       <div className="px-4 mb-2">
@@ -1111,75 +1193,25 @@ function GameContent() {
       </div>
       )}
 
-      {/* Score Input with Mode Toggle */}
+      {/* Round Mode: Score Input */}
+      {game.inputMode === "round" && (
       <div className="px-4 mb-3">
-        <div className="flex bg-[#f5f5f5] rounded-full overflow-hidden h-14">
-          {/* Mode Toggle Icon */}
-          <button
-            onClick={() => handleModeToggle(game.inputMode === "round" ? "dart" : "round")}
-            className="px-4 flex items-center justify-center text-slate-700 hover:bg-slate-200 transition-colors"
-            title={game.inputMode === "round" ? "Switch to Dart by Dart" : "Switch to Round Total"}
-          >
-            {game.inputMode === "round" ? (
-              /* Grid icon for switching to dart mode */
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                <rect x="3" y="3" width="4" height="4" rx="0.5" />
-                <rect x="10" y="3" width="4" height="4" rx="0.5" />
-                <rect x="17" y="3" width="4" height="4" rx="0.5" />
-                <rect x="3" y="10" width="4" height="4" rx="0.5" />
-                <rect x="10" y="10" width="4" height="4" rx="0.5" />
-                <rect x="17" y="10" width="4" height="4" rx="0.5" />
-                <rect x="3" y="17" width="4" height="4" rx="0.5" />
-                <rect x="10" y="17" width="4" height="4" rx="0.5" />
-                <rect x="17" y="17" width="4" height="4" rx="0.5" />
-              </svg>
-            ) : (
-              /* Keypad icon for switching to round mode */
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-              </svg>
-            )}
-          </button>
-
-          {/* Score Display / Darts Display */}
-          <div className="flex-1 flex items-center px-2">
-            {game.inputMode === "round" ? (
-              <span className={`text-lg ${game.currentScore ? "text-slate-800" : "text-slate-400"}`}>
-                {game.currentScore || "Enter score"}
-              </span>
-            ) : (
-              <div className="flex items-center gap-2 flex-1">
-                {[0, 1, 2].map((i) => (
-                  <span
-                    key={i}
-                    className={`text-sm font-semibold ${
-                      game.currentDarts[i] ? "text-slate-800" : "text-slate-400"
-                    }`}
-                  >
-                    {game.currentDarts[i] ? formatDart(game.currentDarts[i]) : "-"}
-                  </span>
-                ))}
-                {game.currentDarts.length > 0 && (
-                  <span className="text-slate-500 text-sm ml-auto mr-2">
-                    = {getCurrentDartsTotal()}
-                  </span>
-                )}
-              </div>
-            )}
+        <div className="flex bg-[#2a2a2a] rounded-full overflow-hidden">
+          <div className="flex-1 flex items-center px-4">
+            <span className={`text-lg ${game.currentScore ? "text-white" : "text-slate-500"}`}>
+              {game.currentScore || "Enter score"}
+            </span>
           </div>
-
-          {/* Submit Button */}
           <button
-            onClick={() => game.inputMode === "round" ? handleNumberPad("submit") : handleDartSubmit()}
-            disabled={game.inputMode === "round"
-              ? (!game.currentScore || !!game.pendingLegWin)
-              : (game.currentDarts.length === 0 || !!game.pendingLegWin)}
-            className="bg-[#4ade80] hover:bg-[#22c55e] disabled:bg-[#9ca3af] px-6 py-3 rounded-full mr-1 text-black font-semibold transition-colors"
+            onClick={() => handleNumberPad("submit")}
+            disabled={!game.currentScore || !!game.pendingLegWin}
+            className="bg-[#4ade80] hover:bg-[#22c55e] disabled:bg-[#2d5a3d] px-8 py-3 text-black font-semibold transition-colors"
           >
             Submit
           </button>
         </div>
       </div>
+      )}
 
       {/* Round Mode: Number Pad */}
       {game.inputMode === "round" && (
@@ -1213,42 +1245,68 @@ function GameContent() {
       </div>
       )}
 
-      {/* Dart Mode: Multiplier Selector (DartCounter style) */}
+      {/* Dart Mode: Current Darts Display */}
       {game.inputMode === "dart" && (
-      <div className="px-4 mb-1">
-        <div className="flex border-b border-[#333]">
+      <div className="px-4 mb-2">
+        <div className="bg-[#2a2a2a] rounded-xl p-3">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-slate-400 text-sm">Current Turn</span>
+            <span className="text-white font-bold">
+              Total: {getCurrentDartsTotal()}
+            </span>
+          </div>
+          <div className="flex gap-2">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className={`flex-1 py-3 rounded-lg text-center font-bold ${
+                  game.currentDarts[i]
+                    ? "bg-[#4ade80] text-black"
+                    : "bg-[#1a1a1a] text-slate-500"
+                }`}
+              >
+                {game.currentDarts[i] ? formatDart(game.currentDarts[i]) : `-`}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      )}
+
+      {/* Dart Mode: Multiplier Selector */}
+      {game.inputMode === "dart" && (
+      <div className="px-4 mb-2">
+        <div className="flex gap-1">
           {(["single", "double", "treble", "bull", "outer"] as DartMultiplier[]).map((mult) => (
             <button
               key={mult}
               onClick={() => handleMultiplierSelect(mult)}
               disabled={game.gameOver || !!game.pendingLegWin}
-              className={`flex-1 py-2 text-center transition-colors relative ${
+              className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase transition-colors ${
                 game.selectedMultiplier === mult
-                  ? "text-white"
-                  : "text-slate-500 hover:text-slate-300"
+                  ? mult === "bull"
+                    ? "bg-red-500 text-white"
+                    : mult === "outer"
+                    ? "bg-green-600 text-white"
+                    : mult === "double"
+                    ? "bg-blue-500 text-white"
+                    : mult === "treble"
+                    ? "bg-purple-500 text-white"
+                    : "bg-[#4ade80] text-black"
+                  : "bg-[#2a2a2a] text-slate-400 hover:text-white"
               }`}
             >
-              <div className="flex flex-col items-center">
-                <span className="text-sm font-medium capitalize">
-                  {mult === "bull" ? "Bull" : mult === "outer" ? "Outer" : mult}
-                </span>
-                {(mult === "bull" || mult === "outer") && (
-                  <span className="text-xs text-slate-400">{mult === "bull" ? "50" : "25"}</span>
-                )}
-              </div>
-              {game.selectedMultiplier === mult && (
-                <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-[#e85d3b]" />
-              )}
+              {mult === "bull" ? "Bull" : mult === "outer" ? "25" : mult.charAt(0).toUpperCase()}
             </button>
           ))}
         </div>
       </div>
       )}
 
-      {/* Dart Mode: Number Grid (DartCounter table style) */}
+      {/* Dart Mode: Number Grid */}
       {game.inputMode === "dart" && (
       <div className="px-4 mb-2 flex-1">
-        <div className="grid grid-cols-5 h-full border-l border-t border-[#333]">
+        <div className="grid grid-cols-5 gap-1 h-full">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].map((num) => {
             const score = getDartScore(game.selectedMultiplier, num);
             const wouldBust = currentPlayer.remaining - getCurrentDartsTotal() - score < 0 ||
@@ -1262,10 +1320,10 @@ function GameContent() {
                 key={num}
                 onClick={() => handleDartInput(num)}
                 disabled={isDisabled}
-                className={`py-5 text-2xl font-light border-r border-b border-[#333] transition-colors ${
+                className={`py-4 rounded-lg text-xl font-bold transition-colors ${
                   isDisabled
-                    ? "text-slate-600 cursor-not-allowed"
-                    : "text-white hover:bg-[#2a2a2a] active:bg-[#4ade80] active:text-black"
+                    ? "bg-[#1a1a1a] text-slate-600 cursor-not-allowed"
+                    : "bg-[#2a2a2a] text-white hover:bg-[#333] active:bg-[#4ade80] active:text-black"
                 }`}
               >
                 {num}
@@ -1276,35 +1334,40 @@ function GameContent() {
       </div>
       )}
 
-      {/* Dart Mode: Action Buttons (DartCounter style) */}
+      {/* Dart Mode: Action Buttons */}
       {game.inputMode === "dart" && (
       <div className="px-4 pb-4">
-        <div className="grid grid-cols-3 border-l border-t border-[#333]">
-          {/* Undo */}
+        <div className="flex gap-2">
           <button
             onClick={handleDartUndo}
             disabled={game.gameOver || !!game.pendingLegWin || game.currentDarts.length === 0}
-            className="py-4 border-r border-b border-[#333] flex items-center justify-center disabled:opacity-40 text-white hover:bg-[#2a2a2a] transition-colors"
+            className="flex-1 py-4 bg-[#2a2a2a] hover:bg-[#333] disabled:opacity-50 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a5 5 0 015 5v2M3 10l4-4m-4 4l4 4" />
             </svg>
+            Undo
           </button>
-          {/* Miss */}
           <button
             onClick={handleDartMiss}
             disabled={game.gameOver || !!game.pendingLegWin || game.currentDarts.length >= 3}
-            className="py-4 border-r border-b border-[#333] text-xl font-bold disabled:opacity-40 text-white hover:bg-[#2a2a2a] transition-colors"
+            className="flex-1 py-4 bg-[#e85d3b] hover:bg-[#d14d2b] disabled:opacity-50 text-white rounded-xl text-sm font-bold"
           >
-            MISS
+            Miss
           </button>
-          {/* Bust */}
           <button
             onClick={handleDartBust}
             disabled={game.gameOver || !!game.pendingLegWin}
-            className="py-4 border-r border-b border-[#333] text-xl font-bold disabled:opacity-40 text-[#f5a623] hover:bg-[#2a2a2a] transition-colors"
+            className="flex-1 py-4 bg-[#f5a623] hover:bg-[#d98f1e] disabled:opacity-50 text-black rounded-xl text-sm font-bold"
           >
-            BUST
+            Bust
+          </button>
+          <button
+            onClick={handleDartSubmit}
+            disabled={game.gameOver || !!game.pendingLegWin || game.currentDarts.length === 0}
+            className="flex-1 py-4 bg-[#4ade80] hover:bg-[#22c55e] disabled:opacity-50 disabled:bg-[#2d5a3d] text-black rounded-xl text-sm font-bold"
+          >
+            Submit
           </button>
         </div>
       </div>
