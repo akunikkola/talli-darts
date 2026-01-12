@@ -151,7 +151,7 @@ export default function StatsPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </Link>
-        <h1 className="flex-1 text-center text-white font-bold text-xl">Stats</h1>
+        <h1 className="flex-1 text-center text-white font-bold text-xl">Stats v2</h1>
         <div className="w-10" />
       </div>
 
