@@ -18,6 +18,14 @@ interface GamePlayer {
   haminas: number;
 }
 
+type DartMultiplier = "single" | "double" | "treble" | "bull" | "outer";
+
+interface DartThrow {
+  multiplier: DartMultiplier;
+  value: number;  // 1-20 for single/double/treble, 50 for bull, 25 for outer
+  score: number;  // Calculated: value * multiplier factor
+}
+
 interface GameState {
   players: GamePlayer[];
   currentPlayerIndex: number;
@@ -37,6 +45,12 @@ interface GameState {
   matchHighestCheckout: number;
   // Track each player's highest checkout separately
   playerHighestCheckouts: number[];
+  // Input mode: "round" for total score, "dart" for dart-by-dart
+  inputMode: "round" | "dart";
+  // Current turn's darts (max 3) in dart-by-dart mode
+  currentDarts: DartThrow[];
+  // Selected multiplier in dart-by-dart mode
+  selectedMultiplier: DartMultiplier;
 }
 
 function GameContent() {
@@ -124,6 +138,9 @@ function GameContent() {
       currentLeg: 1,
       matchHighestCheckout: 0,
       playerHighestCheckouts: gamePlayers.map(() => 0),
+      inputMode: "round",
+      currentDarts: [],
+      selectedMultiplier: "single",
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataLoading]);
@@ -655,6 +672,142 @@ function GameContent() {
     setEditThrowValue("");
   };
 
+  // ============ DART-BY-DART MODE HANDLERS ============
+
+  const getDartScore = (multiplier: DartMultiplier, value: number): number => {
+    switch (multiplier) {
+      case "single": return value;
+      case "double": return value * 2;
+      case "treble": return value * 3;
+      case "bull": return 50;
+      case "outer": return 25;
+      default: return value;
+    }
+  };
+
+  const formatDart = (dart: DartThrow): string => {
+    switch (dart.multiplier) {
+      case "single": return `${dart.value}`;
+      case "double": return `D${dart.value}`;
+      case "treble": return `T${dart.value}`;
+      case "bull": return "Bull";
+      case "outer": return "25";
+      default: return `${dart.score}`;
+    }
+  };
+
+  const getCurrentDartsTotal = (): number => {
+    return game.currentDarts.reduce((sum, d) => sum + d.score, 0);
+  };
+
+  const handleModeToggle = (mode: "round" | "dart") => {
+    if (game.gameOver || game.pendingLegWin) return;
+    setGame((prev) => prev ? {
+      ...prev,
+      inputMode: mode,
+      currentScore: "",
+      currentDarts: [],
+      selectedMultiplier: "single"
+    } : null);
+  };
+
+  const handleMultiplierSelect = (multiplier: DartMultiplier) => {
+    if (game.gameOver || game.pendingLegWin) return;
+    setGame((prev) => prev ? { ...prev, selectedMultiplier: multiplier } : null);
+  };
+
+  const handleDartInput = (value: number) => {
+    if (game.gameOver || game.pendingLegWin) return;
+    if (game.currentDarts.length >= 3) return;
+
+    const multiplier = game.selectedMultiplier;
+    const score = getDartScore(multiplier, value);
+
+    const newDart: DartThrow = { multiplier, value, score };
+    const newDarts = [...game.currentDarts, newDart];
+    const total = newDarts.reduce((sum, d) => sum + d.score, 0);
+    const newRemaining = currentPlayer.remaining - total;
+
+    // Check for bust (less than 0 or equals 1)
+    if (newRemaining < 0 || newRemaining === 1) {
+      // Can't add this dart - would bust
+      return;
+    }
+
+    // Check for checkout validity (must end on double)
+    if (newRemaining === 0) {
+      const lastDart = newDart;
+      if (lastDart.multiplier !== "double" && lastDart.multiplier !== "bull") {
+        // Invalid checkout - must end on double or bull
+        return;
+      }
+    }
+
+    setGame((prev) => prev ? { ...prev, currentDarts: newDarts } : null);
+  };
+
+  const handleDartMiss = () => {
+    if (game.gameOver || game.pendingLegWin) return;
+    if (game.currentDarts.length >= 3) return;
+
+    const missDart: DartThrow = { multiplier: "single", value: 0, score: 0 };
+    setGame((prev) => prev ? {
+      ...prev,
+      currentDarts: [...prev.currentDarts, missDart]
+    } : null);
+  };
+
+  const handleDartUndo = () => {
+    if (game.gameOver || game.pendingLegWin) return;
+    if (game.currentDarts.length === 0) return;
+
+    setGame((prev) => prev ? {
+      ...prev,
+      currentDarts: prev.currentDarts.slice(0, -1)
+    } : null);
+  };
+
+  const handleDartSubmit = () => {
+    if (game.gameOver || game.pendingLegWin) return;
+    if (game.currentDarts.length === 0) return;
+
+    const total = getCurrentDartsTotal();
+    const newRemaining = currentPlayer.remaining - total;
+
+    // Validate checkout (double-out)
+    if (newRemaining === 0) {
+      const lastDart = game.currentDarts[game.currentDarts.length - 1];
+      if (lastDart.multiplier !== "double" && lastDart.multiplier !== "bull") {
+        // Should not happen as we validate on input, but safety check
+        return;
+      }
+    }
+
+    // Submit the total score using existing logic
+    submitScore(total);
+
+    // Reset darts for next turn
+    setGame((prev) => prev ? {
+      ...prev,
+      currentDarts: [],
+      selectedMultiplier: "single"
+    } : null);
+  };
+
+  const handleDartBust = () => {
+    if (game.gameOver || game.pendingLegWin) return;
+
+    // Record bust (0 score) and move to next player
+    handleBust();
+
+    // Reset darts
+    setGame((prev) => prev ? {
+      ...prev,
+      currentDarts: [],
+      selectedMultiplier: "single"
+    } : null);
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-[#1a1a1a] select-none">
       {/* Leg Win Confirmation */}
@@ -916,7 +1069,34 @@ function GameContent() {
         </div>
       )}
 
-      {/* Quick Score Buttons & All Throws */}
+      {/* Mode Toggle */}
+      <div className="px-4 mb-2">
+        <div className="flex bg-[#2a2a2a] rounded-lg overflow-hidden">
+          <button
+            onClick={() => handleModeToggle("round")}
+            className={`flex-1 py-2 text-sm font-medium transition-colors ${
+              game.inputMode === "round"
+                ? "bg-[#4ade80] text-black"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            Round Total
+          </button>
+          <button
+            onClick={() => handleModeToggle("dart")}
+            className={`flex-1 py-2 text-sm font-medium transition-colors ${
+              game.inputMode === "dart"
+                ? "bg-[#4ade80] text-black"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            Dart by Dart
+          </button>
+        </div>
+      </div>
+
+      {/* Quick Score Buttons & All Throws (only in round mode) */}
+      {game.inputMode === "round" && (
       <div className="px-4 mb-2">
         <div className="flex gap-2">
           <button
@@ -955,8 +1135,10 @@ function GameContent() {
           </button>
         </div>
       </div>
+      )}
 
-      {/* Score Input */}
+      {/* Round Mode: Score Input */}
+      {game.inputMode === "round" && (
       <div className="px-4 mb-3">
         <div className="flex bg-[#2a2a2a] rounded-full overflow-hidden">
           <div className="flex-1 flex items-center px-4">
@@ -973,8 +1155,10 @@ function GameContent() {
           </button>
         </div>
       </div>
+      )}
 
-      {/* Number Pad */}
+      {/* Round Mode: Number Pad */}
+      {game.inputMode === "round" && (
       <div className="flex-1 px-4 pb-4">
         <div className="grid grid-cols-3 gap-[1px] bg-[#333] h-full rounded-xl overflow-hidden">
           {["1", "2", "3", "4", "5", "6", "7", "8", "9", "undo", "0", "clear"].map((key) => (
@@ -1003,6 +1187,135 @@ function GameContent() {
           ))}
         </div>
       </div>
+      )}
+
+      {/* Dart Mode: Current Darts Display */}
+      {game.inputMode === "dart" && (
+      <div className="px-4 mb-2">
+        <div className="bg-[#2a2a2a] rounded-xl p-3">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-slate-400 text-sm">Current Turn</span>
+            <span className="text-white font-bold">
+              Total: {getCurrentDartsTotal()}
+            </span>
+          </div>
+          <div className="flex gap-2">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className={`flex-1 py-3 rounded-lg text-center font-bold ${
+                  game.currentDarts[i]
+                    ? "bg-[#4ade80] text-black"
+                    : "bg-[#1a1a1a] text-slate-500"
+                }`}
+              >
+                {game.currentDarts[i] ? formatDart(game.currentDarts[i]) : `-`}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      )}
+
+      {/* Dart Mode: Multiplier Selector */}
+      {game.inputMode === "dart" && (
+      <div className="px-4 mb-2">
+        <div className="flex gap-1">
+          {(["single", "double", "treble", "bull", "outer"] as DartMultiplier[]).map((mult) => (
+            <button
+              key={mult}
+              onClick={() => handleMultiplierSelect(mult)}
+              disabled={game.gameOver || !!game.pendingLegWin}
+              className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase transition-colors ${
+                game.selectedMultiplier === mult
+                  ? mult === "bull"
+                    ? "bg-red-500 text-white"
+                    : mult === "outer"
+                    ? "bg-green-600 text-white"
+                    : mult === "double"
+                    ? "bg-blue-500 text-white"
+                    : mult === "treble"
+                    ? "bg-purple-500 text-white"
+                    : "bg-[#4ade80] text-black"
+                  : "bg-[#2a2a2a] text-slate-400 hover:text-white"
+              }`}
+            >
+              {mult === "bull" ? "Bull" : mult === "outer" ? "25" : mult.charAt(0).toUpperCase()}
+            </button>
+          ))}
+        </div>
+      </div>
+      )}
+
+      {/* Dart Mode: Number Grid */}
+      {game.inputMode === "dart" && (
+      <div className="px-4 mb-2 flex-1">
+        <div className="grid grid-cols-5 gap-1 h-full">
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].map((num) => {
+            const score = getDartScore(game.selectedMultiplier, num);
+            const wouldBust = currentPlayer.remaining - getCurrentDartsTotal() - score < 0 ||
+                              currentPlayer.remaining - getCurrentDartsTotal() - score === 1;
+            const isCheckout = currentPlayer.remaining - getCurrentDartsTotal() - score === 0;
+            const invalidCheckout = isCheckout && game.selectedMultiplier !== "double" && game.selectedMultiplier !== "bull";
+            const isDisabled = game.gameOver || !!game.pendingLegWin || game.currentDarts.length >= 3 || wouldBust || invalidCheckout;
+
+            return (
+              <button
+                key={num}
+                onClick={() => handleDartInput(num)}
+                disabled={isDisabled}
+                className={`py-4 rounded-lg text-xl font-bold transition-colors ${
+                  isDisabled
+                    ? "bg-[#1a1a1a] text-slate-600 cursor-not-allowed"
+                    : "bg-[#2a2a2a] text-white hover:bg-[#333] active:bg-[#4ade80] active:text-black"
+                }`}
+              >
+                {num}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      )}
+
+      {/* Dart Mode: Action Buttons */}
+      {game.inputMode === "dart" && (
+      <div className="px-4 pb-4">
+        <div className="flex gap-2">
+          <button
+            onClick={handleDartUndo}
+            disabled={game.gameOver || !!game.pendingLegWin || game.currentDarts.length === 0}
+            className="flex-1 py-4 bg-[#2a2a2a] hover:bg-[#333] disabled:opacity-50 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a5 5 0 015 5v2M3 10l4-4m-4 4l4 4" />
+            </svg>
+            Undo
+          </button>
+          <button
+            onClick={handleDartMiss}
+            disabled={game.gameOver || !!game.pendingLegWin || game.currentDarts.length >= 3}
+            className="flex-1 py-4 bg-[#e85d3b] hover:bg-[#d14d2b] disabled:opacity-50 text-white rounded-xl text-sm font-bold"
+          >
+            Miss
+          </button>
+          <button
+            onClick={handleDartBust}
+            disabled={game.gameOver || !!game.pendingLegWin}
+            className="flex-1 py-4 bg-[#f5a623] hover:bg-[#d98f1e] disabled:opacity-50 text-black rounded-xl text-sm font-bold"
+          >
+            Bust
+          </button>
+          <button
+            onClick={handleDartSubmit}
+            disabled={game.gameOver || !!game.pendingLegWin || game.currentDarts.length === 0}
+            className="flex-1 py-4 bg-[#4ade80] hover:bg-[#22c55e] disabled:opacity-50 disabled:bg-[#2d5a3d] text-black rounded-xl text-sm font-bold"
+          >
+            Submit
+          </button>
+        </div>
+      </div>
+      )}
     </div>
   );
 }
