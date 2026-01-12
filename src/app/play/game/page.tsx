@@ -874,7 +874,7 @@ function GameContent() {
             disabled={game.gameOver || !!game.pendingLegWin}
             className="flex-1 py-2 bg-[#2a2a2a] hover:bg-[#333] disabled:opacity-50 text-white rounded-lg text-sm font-medium"
           >
-            29 <span className="text-slate-400 text-xs">VIP</span>
+            29 <span className="text-slate-400 text-xs">Hanko</span>
           </button>
           <button
             onClick={() => handleQuickScore(180)}
