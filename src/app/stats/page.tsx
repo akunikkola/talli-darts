@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { useData } from "@/context/DataContext";
 import type { Player } from "@/lib/supabase-data";
 
@@ -13,16 +13,17 @@ interface Stats {
   rankedLegs: number;
   practiceLegs: number;
   total180s: number;
+  totalHaminas: number;
   mostWins: Player | null;
   highest180s: Player | null;
-  highestElo: Player | null;
+  highestHaminas: Player | null;
+  highestRankingEver: { player: Player; elo: number } | null;
   biggestRivalry: { player1: string; player2: string; matches: number } | null;
   practiceMostPlayed: { name: string; count: number } | null;
 }
 
 export default function StatsPage() {
-  const { players, matches, loading, resetAllStats } = useData();
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const { players, matches, loading } = useData();
 
   const stats: Stats = useMemo(() => {
     // Separate ranked and practice matches
@@ -37,6 +38,7 @@ export default function StatsPage() {
     const rankedLegs = rankedMatchesList.reduce((sum, m) => sum + m.player1Legs + m.player2Legs, 0);
     const practiceLegs = practiceMatchesList.reduce((sum, m) => sum + m.player1Legs + m.player2Legs, 0);
     const total180s = players.reduce((sum, p) => sum + p.oneEighties, 0);
+    const totalHaminas = players.reduce((sum, p) => sum + p.haminas, 0);
 
     // Calculate average ELO from 301 and 501 ratings
     const getAverageElo = (p: typeof players[0]) => (p.elo301 + p.elo501) / 2;
@@ -44,7 +46,34 @@ export default function StatsPage() {
     // Find leaders
     const sortedByWins = [...players].sort((a, b) => b.wins - a.wins);
     const sortedBy180s = [...players].sort((a, b) => b.oneEighties - a.oneEighties);
-    const sortedByElo = [...players].sort((a, b) => getAverageElo(b) - getAverageElo(a));
+    const sortedByHaminas = [...players].sort((a, b) => b.haminas - a.haminas);
+
+    // Find highest ranking ever from match history (ELO at start + change for winners)
+    let highestRankingEver: { player: Player; elo: number } | null = null;
+    let maxEloEver = 0;
+
+    // Check all matches to find the highest ELO any player has reached
+    rankedMatchesList.forEach((match) => {
+      // Calculate ELO after match for player 1
+      const p1EloAfter = match.player1EloStart + match.player1EloChange;
+      // Calculate ELO after match for player 2
+      const p2EloAfter = match.player2EloStart + match.player2EloChange;
+
+      if (p1EloAfter > maxEloEver) {
+        maxEloEver = p1EloAfter;
+        const player = players.find(p => p.id === match.player1Id);
+        if (player) {
+          highestRankingEver = { player, elo: p1EloAfter };
+        }
+      }
+      if (p2EloAfter > maxEloEver) {
+        maxEloEver = p2EloAfter;
+        const player = players.find(p => p.id === match.player2Id);
+        if (player) {
+          highestRankingEver = { player, elo: p2EloAfter };
+        }
+      }
+    });
 
     // Find biggest rivalry (ranked matches only)
     const rivalries: Record<string, number> = {};
@@ -87,9 +116,11 @@ export default function StatsPage() {
       rankedLegs,
       practiceLegs,
       total180s,
+      totalHaminas,
       mostWins: sortedByWins[0]?.wins > 0 ? sortedByWins[0] : null,
       highest180s: sortedBy180s[0]?.oneEighties > 0 ? sortedBy180s[0] : null,
-      highestElo: sortedByElo[0] || null,
+      highestHaminas: sortedByHaminas[0]?.haminas > 0 ? sortedByHaminas[0] : null,
+      highestRankingEver,
       biggestRivalry: maxMatches > 1 ? biggestRivalry : null,
       practiceMostPlayed: maxPractice > 0 ? practiceMostPlayed : null,
     };
@@ -102,11 +133,6 @@ export default function StatsPage() {
       </div>
     );
   }
-
-  const handleResetAll = async () => {
-    await resetAllStats();
-    setShowResetConfirm(false);
-  };
 
   const StatCard = ({ label, value, subtext }: { label: string; value: string | number; subtext?: string }) => (
     <div className="bg-[#2a2a2a] rounded-xl p-4">
@@ -131,10 +157,11 @@ export default function StatsPage() {
 
       <div className="px-4 space-y-4">
         {/* Overall Stats */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <StatCard label="Total Matches" value={stats.totalMatches} />
           <StatCard label="Total Legs" value={stats.totalLegs} />
           <StatCard label="180s" value={stats.total180s} />
+          <StatCard label="Haminas (26)" value={stats.totalHaminas} />
         </div>
 
         {/* Ranked vs Practice breakdown */}
@@ -155,13 +182,13 @@ export default function StatsPage() {
         <div className="space-y-3">
           <h2 className="text-white font-semibold">Leaders</h2>
 
-          {stats.highestElo && (
+          {stats.highestRankingEver && (
             <div className="bg-[#2a2a2a] rounded-xl p-4 flex items-center justify-between">
               <div>
-                <p className="text-slate-400 text-sm">Highest ELO</p>
-                <p className="text-white font-semibold">{stats.highestElo.name}</p>
+                <p className="text-slate-400 text-sm">All-time Highest Ranking</p>
+                <p className="text-white font-semibold">{stats.highestRankingEver.player.name}</p>
               </div>
-              <span className="text-[#4ade80] text-2xl font-bold">{((stats.highestElo.elo301 + stats.highestElo.elo501) / 2).toFixed(0)}</span>
+              <span className="text-[#4ade80] text-2xl font-bold">{stats.highestRankingEver.elo.toFixed(0)}</span>
             </div>
           )}
 
@@ -182,6 +209,16 @@ export default function StatsPage() {
                 <p className="text-white font-semibold">{stats.highest180s.name}</p>
               </div>
               <span className="text-amber-400 text-2xl font-bold">{stats.highest180s.oneEighties}</span>
+            </div>
+          )}
+
+          {stats.highestHaminas && (
+            <div className="bg-[#2a2a2a] rounded-xl p-4 flex items-center justify-between">
+              <div>
+                <p className="text-slate-400 text-sm">Most Haminas (26)</p>
+                <p className="text-white font-semibold">{stats.highestHaminas.name}</p>
+              </div>
+              <span className="text-red-400 text-2xl font-bold">{stats.highestHaminas.haminas}</span>
             </div>
           )}
 
@@ -214,55 +251,7 @@ export default function StatsPage() {
             </Link>
           </div>
         )}
-
-        {/* Reset All Stats Button */}
-        <div className="pt-8 pb-4">
-          <button
-            onClick={() => setShowResetConfirm(true)}
-            className="w-full py-3 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-xl font-semibold transition-colors"
-          >
-            Reset All Stats
-          </button>
-          <p className="text-slate-500 text-xs text-center mt-2">
-            Resets all ELO to 1000 and clears match history
-          </p>
-        </div>
       </div>
-
-      {/* Reset Confirmation Modal */}
-      {showResetConfirm && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#2a2a2a] rounded-2xl p-6 w-full max-w-sm">
-            <h3 className="text-white font-bold text-xl mb-2">Reset All Stats?</h3>
-            <p className="text-slate-400 mb-2">
-              This will:
-            </p>
-            <ul className="text-slate-400 text-sm mb-4 space-y-1">
-              <li>• Reset all players to 1000 ELO</li>
-              <li>• Clear all wins, losses, and legs</li>
-              <li>• Clear all 180s and checkouts</li>
-              <li>• Delete all match history</li>
-            </ul>
-            <p className="text-amber-400 text-sm mb-4">
-              This action cannot be undone!
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setShowResetConfirm(false)}
-                className="py-3 bg-[#444] hover:bg-[#555] text-white rounded-xl font-semibold"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleResetAll}
-                className="py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold"
-              >
-                Reset All
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

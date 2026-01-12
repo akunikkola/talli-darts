@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useData } from "@/context/DataContext";
 import type { Player } from "@/lib/supabase-data";
+import PlayerAvatar from "@/components/PlayerAvatar";
 
 type RankingType = "overall" | "301" | "501";
+type MatchFilterType = "all" | "ranked" | "practice";
 
 // Calculate average ELO from 301 and 501 ratings
 const getAverageElo = (player: { elo301: number; elo501: number }) => {
@@ -28,6 +30,7 @@ const getWeekStart = () => {
 export default function Home() {
   const { players, matches, loading } = useData();
   const [rankingType, setRankingType] = useState<RankingType>("overall");
+  const [matchFilter, setMatchFilter] = useState<MatchFilterType>("all");
 
   const getElo = (player: Player) => {
     switch (rankingType) {
@@ -74,7 +77,15 @@ export default function Home() {
     }
   }, [players, rankingType]);
 
-  const recentMatches = matches.slice(0, 5);
+  const recentMatches = useMemo(() => {
+    let filtered = matches;
+    if (matchFilter === "ranked") {
+      filtered = matches.filter(m => m.isRanked);
+    } else if (matchFilter === "practice") {
+      filtered = matches.filter(m => !m.isRanked);
+    }
+    return filtered.slice(0, 5);
+  }, [matches, matchFilter]);
 
   // Get weekly highest checkouts - now includes both players' checkouts separately
   const weeklyCheckouts = useMemo(() => {
@@ -218,6 +229,12 @@ export default function Home() {
                 >
                   {index + 1}
                 </span>
+                <PlayerAvatar
+                  name={player.name}
+                  profilePictureUrl={player.profilePictureUrl}
+                  size="sm"
+                  className="ml-3"
+                />
                 <div className="flex-1 ml-3 flex items-center gap-2">
                   <span className="text-white">{player.name}</span>
                   {player.club && (
@@ -243,6 +260,39 @@ export default function Home() {
           <Link href="/matches" className="text-[#4ade80] text-sm">
             See all
           </Link>
+        </div>
+        {/* Match Filter Tabs */}
+        <div className="grid grid-cols-3 gap-2 bg-[#2a2a2a] rounded-xl p-1 mb-3">
+          <button
+            onClick={() => setMatchFilter("all")}
+            className={`py-2 rounded-lg text-sm font-semibold transition-colors ${
+              matchFilter === "all"
+                ? "bg-[#4ade80] text-black"
+                : "text-white hover:bg-[#333]"
+            }`}
+          >
+            All
+          </button>
+          <button
+            onClick={() => setMatchFilter("ranked")}
+            className={`py-2 rounded-lg text-sm font-semibold transition-colors ${
+              matchFilter === "ranked"
+                ? "bg-[#4ade80] text-black"
+                : "text-white hover:bg-[#333]"
+            }`}
+          >
+            Ranked
+          </button>
+          <button
+            onClick={() => setMatchFilter("practice")}
+            className={`py-2 rounded-lg text-sm font-semibold transition-colors ${
+              matchFilter === "practice"
+                ? "bg-[#f5a623] text-black"
+                : "text-white hover:bg-[#333]"
+            }`}
+          >
+            Practice
+          </button>
         </div>
         <div className="bg-[#2a2a2a] rounded-xl overflow-hidden">
           {recentMatches.length === 0 ? (

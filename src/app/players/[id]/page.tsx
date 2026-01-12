@@ -1,15 +1,16 @@
 "use client";
 
-import { useState, useEffect, use, useMemo } from "react";
+import { useState, useEffect, use, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useData } from "@/context/DataContext";
 import type { Player, MatchResult } from "@/lib/supabase-data";
 
 export default function PlayerProfile({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const { id } = use(params);
-  const { players, matches, getPlayer, updatePlayer, loading } = useData();
+  const { players, matches, getPlayer, updatePlayer, uploadProfilePicture, loading } = useData();
   const [player, setPlayer] = useState<Player | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [name, setName] = useState("");
@@ -18,6 +19,8 @@ export default function PlayerProfile({ params }: { params: Promise<{ id: string
   const [favoritePlayer, setFavoritePlayer] = useState("");
   const [dartsModel, setDartsModel] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const p = getPlayer(id);
@@ -76,6 +79,23 @@ export default function PlayerProfile({ params }: { params: Promise<{ id: string
     setPlayer(prev => prev ? { ...prev, name: name.trim(), club: club.trim() } : null);
     setShowEditModal(false);
     setIsSaving(false);
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !player) return;
+
+    setIsUploadingImage(true);
+    const url = await uploadProfilePicture(player.id, file);
+    if (url) {
+      setPlayer(prev => prev ? { ...prev, profilePictureUrl: url } : null);
+    }
+    setIsUploadingImage(false);
+
+    // Reset the input so the same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -187,13 +207,48 @@ export default function PlayerProfile({ params }: { params: Promise<{ id: string
         </button>
       </div>
 
+      {/* Hidden file input for image upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleImageUpload}
+        className="hidden"
+      />
+
       {/* Player Header */}
       <div className="px-4 pb-4">
         <div className="bg-[#2a2a2a] rounded-2xl p-6">
           <div className="flex items-center gap-4">
-            <div className="w-20 h-20 rounded-full bg-[#4ade80] flex items-center justify-center text-3xl font-bold text-black">
-              {player.name.charAt(0)}
-            </div>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploadingImage}
+              className="relative w-20 h-20 rounded-lg overflow-hidden group"
+            >
+              {player.profilePictureUrl ? (
+                <Image
+                  src={player.profilePictureUrl}
+                  alt={player.name}
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-[#4ade80] flex items-center justify-center text-3xl font-bold text-black">
+                  {player.name.charAt(0)}
+                </div>
+              )}
+              {/* Overlay */}
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                {isUploadingImage ? (
+                  <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                )}
+              </div>
+            </button>
             <div className="flex-1">
               <h2 className="text-2xl font-bold text-white">{player.name}</h2>
               {player.club && (

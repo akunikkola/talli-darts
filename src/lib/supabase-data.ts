@@ -17,11 +17,14 @@ interface DbPlayer {
   legs_won: number;
   legs_lost: number;
   one_eighties: number;
+  haminas: number;
   highest_checkout: number;
   club: string;
   entrance_song: string;
   favorite_player: string;
   darts_model: string;
+  profile_picture_url: string | null;
+  archived_at: string | null;
   created_at: string;
 }
 
@@ -72,10 +75,13 @@ export interface Player {
   losses501: number;
   highestCheckout: number;
   oneEighties: number;
+  haminas: number;
   club: string;
   entranceSong: string;
   favoritePlayer: string;
   dartsModel: string;
+  profilePictureUrl: string | null;
+  archivedAt: string | null;
   createdAt: string;
 }
 
@@ -128,10 +134,13 @@ function dbToPlayer(db: DbPlayer): Player {
     losses501: db.losses501,
     highestCheckout: db.highest_checkout,
     oneEighties: db.one_eighties,
+    haminas: db.haminas || 0,
     club: db.club,
     entranceSong: db.entrance_song,
     favoritePlayer: db.favorite_player,
     dartsModel: db.darts_model,
+    profilePictureUrl: db.profile_picture_url,
+    archivedAt: db.archived_at,
     createdAt: db.created_at,
   };
 }
@@ -155,10 +164,13 @@ function playerToDb(player: Partial<Player>): Partial<DbPlayer> {
   if (player.losses501 !== undefined) result.losses501 = player.losses501;
   if (player.highestCheckout !== undefined) result.highest_checkout = player.highestCheckout;
   if (player.oneEighties !== undefined) result.one_eighties = player.oneEighties;
+  if (player.haminas !== undefined) result.haminas = player.haminas;
   if (player.club !== undefined) result.club = player.club;
   if (player.entranceSong !== undefined) result.entrance_song = player.entranceSong;
   if (player.favoritePlayer !== undefined) result.favorite_player = player.favoritePlayer;
   if (player.dartsModel !== undefined) result.darts_model = player.dartsModel;
+  if (player.profilePictureUrl !== undefined) result.profile_picture_url = player.profilePictureUrl;
+  if (player.archivedAt !== undefined) result.archived_at = player.archivedAt;
   if (player.createdAt !== undefined) result.created_at = player.createdAt;
   return result as Partial<DbPlayer>;
 }
@@ -245,6 +257,7 @@ export async function fetchPlayers(): Promise<Player[]> {
   const { data, error } = await supabase
     .from('players')
     .select('*')
+    .is('archived_at', null)  // Only fetch non-archived players
     .order('elo', { ascending: false });
 
   if (error) {
@@ -328,18 +341,52 @@ export async function updatePlayerDb(id: string, updates: Partial<Player>): Prom
 }
 
 export async function deletePlayerDb(id: string): Promise<boolean> {
+  // Soft delete: archive the player instead of deleting
   const supabase = createClient();
   const { error } = await supabase
     .from('players')
-    .delete()
+    .update({ archived_at: new Date().toISOString() })
     .eq('id', id);
 
   if (error) {
-    console.error('Error deleting player:', error);
+    console.error('Error archiving player:', error);
     return false;
   }
 
   return true;
+}
+
+// Restore an archived player
+export async function restorePlayerDb(id: string): Promise<boolean> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from('players')
+    .update({ archived_at: null })
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error restoring player:', error);
+    return false;
+  }
+
+  return true;
+}
+
+// Fetch archived players (for admin purposes)
+export async function fetchArchivedPlayers(): Promise<Player[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('players')
+    .select('*')
+    .not('archived_at', 'is', null)
+    .order('archived_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching archived players:', error);
+    return [];
+  }
+
+  return (data || []).map(dbToPlayer);
 }
 
 export async function resetAllPlayersStats(): Promise<boolean> {
@@ -540,6 +587,80 @@ export async function clearAllMatches(): Promise<boolean> {
 
   if (error) {
     console.error('Error clearing matches:', error);
+    return false;
+  }
+
+  return true;
+}
+
+// ============ PROFILE PICTURE UPLOAD ============
+
+export async function uploadProfilePicture(playerId: string, file: File): Promise<string | null> {
+  const supabase = createClient();
+
+  // Create a unique filename
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${playerId}-${Date.now()}.${fileExt}`;
+  const filePath = `avatars/${fileName}`;
+
+  // Upload to Supabase Storage
+  const { error: uploadError } = await supabase.storage
+    .from('avatars')
+    .upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: true,
+    });
+
+  if (uploadError) {
+    console.error('Error uploading profile picture:', uploadError);
+    return null;
+  }
+
+  // Get the public URL
+  const { data: { publicUrl } } = supabase.storage
+    .from('avatars')
+    .getPublicUrl(filePath);
+
+  // Update the player's profile_picture_url
+  const { error: updateError } = await supabase
+    .from('players')
+    .update({ profile_picture_url: publicUrl })
+    .eq('id', playerId);
+
+  if (updateError) {
+    console.error('Error updating player profile picture URL:', updateError);
+    return null;
+  }
+
+  return publicUrl;
+}
+
+export async function deleteProfilePicture(playerId: string, currentUrl: string): Promise<boolean> {
+  const supabase = createClient();
+
+  // Extract the file path from the URL
+  const urlParts = currentUrl.split('/avatars/');
+  if (urlParts.length < 2) return false;
+
+  const filePath = `avatars/${urlParts[1]}`;
+
+  // Delete from storage
+  const { error: deleteError } = await supabase.storage
+    .from('avatars')
+    .remove([filePath]);
+
+  if (deleteError) {
+    console.error('Error deleting profile picture:', deleteError);
+  }
+
+  // Clear the player's profile_picture_url
+  const { error: updateError } = await supabase
+    .from('players')
+    .update({ profile_picture_url: null })
+    .eq('id', playerId);
+
+  if (updateError) {
+    console.error('Error clearing player profile picture URL:', updateError);
     return false;
   }
 

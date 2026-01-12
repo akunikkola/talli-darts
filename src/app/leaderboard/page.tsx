@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useData } from "@/context/DataContext";
 import type { Player } from "@/lib/supabase-data";
+import PlayerAvatar from "@/components/PlayerAvatar";
 
 type RankingType = "overall" | "301" | "501";
 
@@ -142,6 +143,12 @@ export default function Leaderboard() {
               >
                 {index + 1}
               </span>
+              <PlayerAvatar
+                name={player.name}
+                profilePictureUrl={player.profilePictureUrl}
+                size="sm"
+                className="ml-3"
+              />
               <div className="flex-1 ml-3">
                 <div className="flex items-center gap-2">
                   <span className="text-white font-medium">{player.name}</span>

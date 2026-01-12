@@ -15,6 +15,7 @@ interface GamePlayer {
   throws: number[];
   lastScore: number | null;
   oneEighties: number;
+  haminas: number;
 }
 
 interface GameState {
@@ -99,6 +100,7 @@ function GameContent() {
         throws: [],
         lastScore: null,
         oneEighties: 0,
+        haminas: 0,
       };
     }).filter(Boolean) as GamePlayer[];
 
@@ -190,15 +192,25 @@ function GameContent() {
     const winnerEloChange = overallEloResult.changeA;
     const loserEloChange = overallEloResult.changeB;
 
+    // Get player checkouts from this match
+    const winnerCheckout = playerCheckouts[winnerIndex] || 0;
+    const loserCheckout = playerCheckouts[winnerIndex === 0 ? 1 : 0] || 0;
+
     // Update winner stats
     const winnerUpdates: Record<string, number> = {
       wins: winnerStored.wins + 1,
-      legsWon: winnerStored.legsWon + winner.legsWon,
-      legsLost: winnerStored.legsLost + loser.legsWon,
+      legsWon: winnerStored.legsWon + winnerLegs,
+      legsLost: winnerStored.legsLost + loserLegs,
       oneEighties: winnerStored.oneEighties + winner.oneEighties,
+      haminas: winnerStored.haminas + winner.haminas,
       // Overall ELO is calculated independently
       elo: overallEloResult.newEloA,
     };
+
+    // Update highest checkout if this match's checkout is higher
+    if (winnerCheckout > winnerStored.highestCheckout) {
+      winnerUpdates.highestCheckout = winnerCheckout;
+    }
 
     if (mode === "301") {
       winnerUpdates.elo301 = gameEloResult.newEloA;
@@ -213,12 +225,18 @@ function GameContent() {
     // Update loser stats
     const loserUpdates: Record<string, number> = {
       losses: loserStored.losses + 1,
-      legsWon: loserStored.legsWon + loser.legsWon,
-      legsLost: loserStored.legsLost + winner.legsWon,
+      legsWon: loserStored.legsWon + loserLegs,
+      legsLost: loserStored.legsLost + winnerLegs,
       oneEighties: loserStored.oneEighties + loser.oneEighties,
+      haminas: loserStored.haminas + loser.haminas,
       // Overall ELO is calculated independently
       elo: overallEloResult.newEloB,
     };
+
+    // Update highest checkout if this match's checkout is higher
+    if (loserCheckout > loserStored.highestCheckout) {
+      loserUpdates.highestCheckout = loserCheckout;
+    }
 
     if (mode === "301") {
       loserUpdates.elo301 = gameEloResult.newEloB;
@@ -462,6 +480,7 @@ function GameContent() {
           throws: [...newPlayers[prev.currentPlayerIndex].throws, scoreValue],
           lastScore: scoreValue,
           oneEighties: newPlayers[prev.currentPlayerIndex].oneEighties + (scoreValue === 180 ? 1 : 0),
+          haminas: newPlayers[prev.currentPlayerIndex].haminas + (scoreValue === 26 ? 1 : 0),
         };
         return {
           ...prev,
@@ -483,6 +502,7 @@ function GameContent() {
           throws: [...newPlayers[prev.currentPlayerIndex].throws, scoreValue],
           lastScore: scoreValue,
           oneEighties: newPlayers[prev.currentPlayerIndex].oneEighties + (scoreValue === 180 ? 1 : 0),
+          haminas: newPlayers[prev.currentPlayerIndex].haminas + (scoreValue === 26 ? 1 : 0),
         };
 
         return {
@@ -526,6 +546,7 @@ function GameContent() {
         throws: undoPlayer.throws.slice(0, -1),
         lastScore: lastAction.lastScore,
         oneEighties: undoPlayer.oneEighties - (lastThrow === 180 ? 1 : 0),
+        haminas: undoPlayer.haminas - (lastThrow === 26 ? 1 : 0),
       };
 
       return {
@@ -559,6 +580,34 @@ function GameContent() {
     submitScore(score);
   };
 
+  const handleBust = () => {
+    if (game?.gameOver || game?.pendingLegWin) return;
+
+    // Bust: Record 0 score, move to next player without changing remaining
+    setLastAction({
+      playerIndex: game.currentPlayerIndex,
+      score: 0,
+      remaining: currentPlayer.remaining,
+      lastScore: currentPlayer.lastScore,
+    });
+
+    setGame((prev) => {
+      if (!prev) return null;
+      const newPlayers = [...prev.players];
+      newPlayers[prev.currentPlayerIndex] = {
+        ...newPlayers[prev.currentPlayerIndex],
+        throws: [...newPlayers[prev.currentPlayerIndex].throws, 0],
+        lastScore: 0,
+      };
+      return {
+        ...prev,
+        players: newPlayers,
+        currentPlayerIndex: (prev.currentPlayerIndex + 1) % prev.players.length,
+        currentScore: "",
+      };
+    });
+  };
+
   const openEditThrow = (playerIndex: number, throwIndex: number, currentValue: number) => {
     setEditingThrow({ playerIndex, throwIndex, currentValue });
     setEditThrowValue(currentValue.toString());
@@ -588,8 +637,10 @@ function GameContent() {
       player.remaining = startingScore - totalThrown;
 
       // Update 180 count
-      const old180s = player.throws.filter(t => t === 180).length;
       player.oneEighties = newThrows.filter(t => t === 180).length;
+
+      // Update haminas count (26s)
+      player.haminas = newThrows.filter(t => t === 26).length;
 
       // Update last score if this was the last throw
       if (throwIndex === newThrows.length - 1) {
@@ -868,6 +919,13 @@ function GameContent() {
       {/* Quick Score Buttons & All Throws */}
       <div className="px-4 mb-2">
         <div className="flex gap-2">
+          <button
+            onClick={handleBust}
+            disabled={game.gameOver || !!game.pendingLegWin}
+            className="flex-1 py-2 bg-[#e85d3b] hover:bg-[#d14d2b] disabled:opacity-50 text-white rounded-lg text-sm font-bold"
+          >
+            Bust
+          </button>
           <button
             onClick={() => handleQuickScore(26)}
             disabled={game.gameOver || !!game.pendingLegWin}

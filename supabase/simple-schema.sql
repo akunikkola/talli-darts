@@ -30,6 +30,8 @@ create table public.players (
   entrance_song text default '' not null,
   favorite_player text default '' not null,
   darts_model text default '' not null,
+  profile_picture_url text default null,
+  archived_at timestamptz default null,
   created_at timestamptz default now() not null
 );
 

@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useData } from "@/context/DataContext";
 import { useState } from "react";
 
@@ -50,12 +51,16 @@ function StatBar({
 export default function MatchDetail() {
   const params = useParams();
   const router = useRouter();
-  const { matches, deleteMatchAndRevertStats, loading } = useData();
+  const { matches, players, deleteMatchAndRevertStats, loading } = useData();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   const matchId = params.id as string;
   const match = matches.find((m) => m.id === matchId);
+
+  // Get player data for profile pictures
+  const player1 = match ? players.find((p) => p.id === match.player1Id) : null;
+  const player2 = match ? players.find((p) => p.id === match.player2Id) : null;
 
   if (loading) {
     return (
@@ -182,11 +187,21 @@ export default function MatchDetail() {
             {/* Player 1 */}
             <Link href={`/players/${match.player1Id}`} className="flex-1 text-center group">
               <div
-                className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center text-2xl font-bold mb-2 group-hover:ring-2 group-hover:ring-[#4ade80] transition-all ${
-                  player1Won ? "bg-[#e85d3b]" : "bg-[#444]"
+                className={`w-16 h-16 mx-auto rounded-lg overflow-hidden flex items-center justify-center text-2xl font-bold mb-2 group-hover:ring-2 group-hover:ring-[#4ade80] transition-all ${
+                  !player1?.profilePictureUrl ? (player1Won ? "bg-[#e85d3b]" : "bg-[#444]") : ""
                 }`}
               >
-                {match.player1Name.charAt(0)}
+                {player1?.profilePictureUrl ? (
+                  <Image
+                    src={player1.profilePictureUrl}
+                    alt={match.player1Name}
+                    width={64}
+                    height={64}
+                    className="object-cover w-full h-full"
+                  />
+                ) : (
+                  match.player1Name.charAt(0)
+                )}
               </div>
               <p
                 className={`font-semibold group-hover:text-[#4ade80] transition-colors ${
@@ -225,11 +240,21 @@ export default function MatchDetail() {
             {/* Player 2 */}
             <Link href={`/players/${match.player2Id}`} className="flex-1 text-center group">
               <div
-                className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center text-2xl font-bold mb-2 group-hover:ring-2 group-hover:ring-[#4ade80] transition-all ${
-                  !player1Won ? "bg-[#f5a623]" : "bg-[#444]"
+                className={`w-16 h-16 mx-auto rounded-lg overflow-hidden flex items-center justify-center text-2xl font-bold mb-2 group-hover:ring-2 group-hover:ring-[#4ade80] transition-all ${
+                  !player2?.profilePictureUrl ? (!player1Won ? "bg-[#f5a623]" : "bg-[#444]") : ""
                 }`}
               >
-                {match.player2Name.charAt(0)}
+                {player2?.profilePictureUrl ? (
+                  <Image
+                    src={player2.profilePictureUrl}
+                    alt={match.player2Name}
+                    width={64}
+                    height={64}
+                    className="object-cover w-full h-full"
+                  />
+                ) : (
+                  match.player2Name.charAt(0)
+                )}
               </div>
               <p
                 className={`font-semibold group-hover:text-[#4ade80] transition-colors ${

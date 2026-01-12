@@ -18,6 +18,7 @@ import {
   subscribeToPlayers,
   subscribeToMatches,
   initializeDefaultPlayers,
+  uploadProfilePicture as uploadProfilePictureDb,
 } from '@/lib/supabase-data';
 import { calculateMatchElo } from '@/lib/elo';
 
@@ -32,6 +33,7 @@ interface DataContextType {
   addPlayer: (name: string, group?: "talli" | "visitor") => Promise<Player | null>;
   updatePlayer: (id: string, updates: Partial<Player>) => Promise<boolean>;
   deletePlayer: (id: string) => Promise<boolean>;
+  uploadProfilePicture: (playerId: string, file: File) => Promise<string | null>;
 
   // Match operations
   saveMatch: (match: Omit<MatchResult, 'id' | 'playedAt'>) => Promise<MatchResult | null>;
@@ -96,6 +98,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const deletePlayerFn = useCallback(async (id: string) => {
     return deletePlayerDb(id);
+  }, []);
+
+  const uploadProfilePicture = useCallback(async (playerId: string, file: File) => {
+    return uploadProfilePictureDb(playerId, file);
   }, []);
 
   const saveMatch = useCallback(async (match: Omit<MatchResult, 'id' | 'playedAt'>) => {
@@ -197,6 +203,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         addPlayer,
         updatePlayer,
         deletePlayer: deletePlayerFn,
+        uploadProfilePicture,
         saveMatch,
         updateMatch,
         deleteMatchAndRevertStats,
