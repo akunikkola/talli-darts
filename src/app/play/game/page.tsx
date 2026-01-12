@@ -830,6 +830,10 @@ function GameContent() {
                   <span>Last</span>
                   <span className="font-medium">{player.lastScore ?? "-"}</span>
                 </div>
+                <div className="flex justify-between text-white/80">
+                  <span>Darts</span>
+                  <span className="font-medium">{getDartsThrown(player)}</span>
+                </div>
               </div>
             </div>
           ))}
