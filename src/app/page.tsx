@@ -228,7 +228,7 @@ export default function Home() {
                 <span className="text-slate-400 text-sm mr-4">
                   {getWins(player)}W - {getLosses(player)}L
                 </span>
-                <span className="text-[#4ade80] font-semibold">{getElo(player).toFixed(0)}</span>
+                <span className="text-[#4ade80] font-semibold">{getElo(player).toFixed(2)}</span>
               </div>
             ))
           )}
