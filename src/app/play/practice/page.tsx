@@ -155,7 +155,7 @@ export default function PracticeSetup() {
                   key={player.id}
                   onClick={() => togglePlayer(player)}
                   disabled={!isSelected && selectedPlayers.length >= 6}
-                  className={`py-3 px-2 rounded-xl text-sm font-medium transition-colors ${
+                  className={`py-3 px-2 rounded-xl text-sm font-medium transition-colors truncate ${
                     isSelected
                       ? `${getPlayerColor(selectedIndex)} text-white`
                       : "bg-[#2a2a2a] text-white hover:bg-[#333] disabled:opacity-50"
@@ -184,7 +184,7 @@ export default function PracticeSetup() {
                   key={player.id}
                   onClick={() => togglePlayer(player)}
                   disabled={!isSelected && selectedPlayers.length >= 6}
-                  className={`py-3 px-2 rounded-xl text-sm font-medium transition-colors ${
+                  className={`py-3 px-2 rounded-xl text-sm font-medium transition-colors truncate ${
                     isSelected
                       ? `${getPlayerColor(selectedIndex)} text-white`
                       : "bg-[#2a2a2a] text-white hover:bg-[#333] disabled:opacity-50"

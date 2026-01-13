@@ -130,7 +130,7 @@ export default function PlaySetup() {
                       selectPlayer(player, 2);
                     }
                   }}
-                  className={`py-3 px-2 rounded-xl text-sm font-medium transition-colors ${
+                  className={`py-3 px-2 rounded-xl text-sm font-medium transition-colors truncate ${
                     isSelected1
                       ? "bg-[#e85d3b] text-white"
                       : isSelected2
@@ -176,7 +176,7 @@ export default function PlaySetup() {
                       selectPlayer(player, 2);
                     }
                   }}
-                  className={`py-3 px-2 rounded-xl text-sm font-medium transition-colors ${
+                  className={`py-3 px-2 rounded-xl text-sm font-medium transition-colors truncate ${
                     isSelected1
                       ? "bg-[#e85d3b] text-white"
                       : isSelected2

@@ -152,7 +152,7 @@ export default function RankingSetup() {
                 <button
                   key={player.id}
                   onClick={() => selectPlayer(player)}
-                  className={`py-3 px-2 rounded-xl text-sm font-medium transition-colors ${
+                  className={`py-3 px-2 rounded-xl text-sm font-medium transition-colors truncate ${
                     isP1 ? "bg-[#e85d3b] text-white" :
                     isP2 ? "bg-[#f5a623] text-white" :
                     "bg-[#2a2a2a] text-white hover:bg-[#333]"
@@ -180,7 +180,7 @@ export default function RankingSetup() {
                 <button
                   key={player.id}
                   onClick={() => selectPlayer(player)}
-                  className={`py-3 px-2 rounded-xl text-sm font-medium transition-colors ${
+                  className={`py-3 px-2 rounded-xl text-sm font-medium transition-colors truncate ${
                     isP1 ? "bg-[#e85d3b] text-white" :
                     isP2 ? "bg-[#f5a623] text-white" :
                     "bg-[#2a2a2a] text-white hover:bg-[#333]"
