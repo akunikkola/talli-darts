@@ -51,6 +51,8 @@ interface GameState {
   currentDarts: DartThrow[];
   // Selected multiplier in dart-by-dart mode
   selectedMultiplier: DartMultiplier;
+  // ELO changes after match ends (for ranked matches)
+  eloChanges: { player1: number; player2: number } | null;
 }
 
 function GameContent() {
@@ -85,6 +87,7 @@ function GameContent() {
   } | null>(null);
   const [editThrowValue, setEditThrowValue] = useState("");
   const [showModeSelector, setShowModeSelector] = useState(false);
+  const [showMatchStats, setShowMatchStats] = useState(false);
 
   useEffect(() => {
     // Only initialize the game once - don't re-run when player data updates
@@ -142,6 +145,7 @@ function GameContent() {
       inputMode: "round",
       currentDarts: [],
       selectedMultiplier: "single",
+      eloChanges: null,
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataLoading]);
@@ -298,7 +302,12 @@ function GameContent() {
       playerCount: 2,
     });
 
-    setGame((prev) => prev ? { ...prev, matchSaved: true } : null);
+    // Store ELO changes for display in winner popup
+    setGame((prev) => prev ? {
+      ...prev,
+      matchSaved: true,
+      eloChanges: { player1: winnerIndex === 0 ? winnerEloChange : loserEloChange, player2: winnerIndex === 1 ? winnerEloChange : loserEloChange }
+    } : null);
   };
 
   const savePracticeMatch = async (winnerIndex: number, finalLegs: number[], checkoutScore: number, playerCheckouts: number[]) => {
@@ -861,8 +870,8 @@ function GameContent() {
 
       {/* Match Winner Overlay */}
       {game.matchWinner && (
-        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-40">
-          <div className="text-center p-8">
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-40 overflow-auto">
+          <div className="text-center p-8 w-full max-w-md">
             <div className="text-6xl mb-4">🏆</div>
             <h2 className="text-4xl font-bold text-white mb-2">{game.matchWinner}</h2>
             <p className="text-xl text-[#4ade80] mb-2">Wins!</p>
@@ -870,10 +879,135 @@ function GameContent() {
               {game.players.map(p => p.legsWon).join(" - ")}
             </p>
             {!game.isRanked && (
-              <p className="text-[#f5a623] text-sm mb-6">Practice match - ELO unchanged</p>
+              <p className="text-[#f5a623] text-sm mb-4">Practice match - ELO unchanged</p>
             )}
+
+            {/* Match Stats Panel */}
+            {showMatchStats && (
+              <div className="bg-[#2a2a2a] rounded-2xl p-4 mb-4 text-left">
+                <h3 className="text-white font-bold text-center mb-4">Match Statistics</h3>
+
+                {/* ELO Changes - only for ranked matches */}
+                {game.isRanked && game.eloChanges && (
+                  <div className="mb-4 pb-4 border-b border-[#444]">
+                    <p className="text-slate-400 text-sm text-center mb-2">ELO Change</p>
+                    <div className="flex justify-around">
+                      {game.players.slice(0, 2).map((player, index) => {
+                        const change = index === 0 ? game.eloChanges!.player1 : game.eloChanges!.player2;
+                        return (
+                          <div key={player.id} className="text-center">
+                            <p className="text-white font-medium text-sm">{player.name}</p>
+                            <p className={`text-2xl font-bold ${change >= 0 ? "text-[#4ade80]" : "text-red-400"}`}>
+                              {change >= 0 ? "+" : ""}{change.toFixed(1)}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Player Stats Comparison */}
+                <div className="space-y-3">
+                  {/* Averages */}
+                  <div>
+                    <p className="text-slate-400 text-xs text-center mb-1">Average</p>
+                    <div className="flex justify-between items-center">
+                      <span className="text-white font-semibold">{getAverage(game.players[0])}</span>
+                      <div className="flex-1 mx-3 h-2 bg-[#333] rounded-full overflow-hidden flex">
+                        <div
+                          className="bg-[#e85d3b]"
+                          style={{ width: `${(parseFloat(getAverage(game.players[0])) / (parseFloat(getAverage(game.players[0])) + parseFloat(getAverage(game.players[1]))) * 100) || 50}%` }}
+                        />
+                        <div
+                          className="bg-[#f5a623]"
+                          style={{ width: `${(parseFloat(getAverage(game.players[1])) / (parseFloat(getAverage(game.players[0])) + parseFloat(getAverage(game.players[1]))) * 100) || 50}%` }}
+                        />
+                      </div>
+                      <span className="text-white font-semibold">{getAverage(game.players[1])}</span>
+                    </div>
+                  </div>
+
+                  {/* 180s */}
+                  <div>
+                    <p className="text-slate-400 text-xs text-center mb-1">180s</p>
+                    <div className="flex justify-between items-center">
+                      <span className="text-white font-semibold">{game.players[0].oneEighties}</span>
+                      <div className="flex-1 mx-3 h-2 bg-[#333] rounded-full overflow-hidden flex">
+                        <div
+                          className="bg-[#e85d3b]"
+                          style={{ width: `${(game.players[0].oneEighties / (game.players[0].oneEighties + game.players[1].oneEighties) * 100) || 50}%` }}
+                        />
+                        <div
+                          className="bg-[#f5a623]"
+                          style={{ width: `${(game.players[1].oneEighties / (game.players[0].oneEighties + game.players[1].oneEighties) * 100) || 50}%` }}
+                        />
+                      </div>
+                      <span className="text-white font-semibold">{game.players[1].oneEighties}</span>
+                    </div>
+                  </div>
+
+                  {/* Highest Checkout */}
+                  <div>
+                    <p className="text-slate-400 text-xs text-center mb-1">Highest Checkout</p>
+                    <div className="flex justify-between items-center">
+                      <span className="text-white font-semibold">{game.playerHighestCheckouts[0] || 0}</span>
+                      <div className="flex-1 mx-3 h-2 bg-[#333] rounded-full overflow-hidden flex">
+                        <div
+                          className="bg-[#e85d3b]"
+                          style={{ width: `${((game.playerHighestCheckouts[0] || 0) / ((game.playerHighestCheckouts[0] || 0) + (game.playerHighestCheckouts[1] || 0)) * 100) || 50}%` }}
+                        />
+                        <div
+                          className="bg-[#f5a623]"
+                          style={{ width: `${((game.playerHighestCheckouts[1] || 0) / ((game.playerHighestCheckouts[0] || 0) + (game.playerHighestCheckouts[1] || 0)) * 100) || 50}%` }}
+                        />
+                      </div>
+                      <span className="text-white font-semibold">{game.playerHighestCheckouts[1] || 0}</span>
+                    </div>
+                  </div>
+
+                  {/* Darts Thrown */}
+                  <div>
+                    <p className="text-slate-400 text-xs text-center mb-1">Darts Thrown</p>
+                    <div className="flex justify-between items-center">
+                      <span className="text-white font-semibold">{getDartsThrown(game.players[0])}</span>
+                      <div className="flex-1 mx-3 h-2 bg-[#333] rounded-full overflow-hidden flex">
+                        <div
+                          className="bg-[#e85d3b]"
+                          style={{ width: `${(getDartsThrown(game.players[0]) / (getDartsThrown(game.players[0]) + getDartsThrown(game.players[1])) * 100) || 50}%` }}
+                        />
+                        <div
+                          className="bg-[#f5a623]"
+                          style={{ width: `${(getDartsThrown(game.players[1]) / (getDartsThrown(game.players[0]) + getDartsThrown(game.players[1])) * 100) || 50}%` }}
+                        />
+                      </div>
+                      <span className="text-white font-semibold">{getDartsThrown(game.players[1])}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Player names legend */}
+                <div className="flex justify-between mt-4 pt-3 border-t border-[#444]">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-[#e85d3b]" />
+                    <span className="text-white text-sm">{game.players[0].name}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-white text-sm">{game.players[1].name}</span>
+                    <div className="w-3 h-3 rounded-full bg-[#f5a623]" />
+                  </div>
+                </div>
+              </div>
+            )}
+
             {matchResultReady ? (
               <div className="space-y-3">
+                <button
+                  onClick={() => setShowMatchStats(!showMatchStats)}
+                  className="w-full py-4 px-8 bg-[#3b82f6] hover:bg-[#2563eb] rounded-full text-xl font-semibold text-white"
+                >
+                  {showMatchStats ? "Hide Stats" : "Match Stats"}
+                </button>
                 <button
                   onClick={handleNewGame}
                   className="w-full py-4 px-8 bg-[#4ade80] hover:bg-[#22c55e] rounded-full text-xl font-semibold text-black"
