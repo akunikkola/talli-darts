@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import Image from "next/image";
 import { getCheckoutSuggestion } from "@/lib/darts";
 import { calculateMatchElo } from "@/lib/elo";
 import { useData } from "@/context/DataContext";
@@ -869,132 +870,160 @@ function GameContent() {
       )}
 
       {/* Match Winner Overlay */}
-      {game.matchWinner && (
-        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-40 overflow-auto">
-          <div className="text-center p-8 w-full max-w-md">
-            <div className="text-6xl mb-4">🏆</div>
-            <h2 className="text-4xl font-bold text-white mb-2">{game.matchWinner}</h2>
-            <p className="text-xl text-[#4ade80] mb-2">Wins!</p>
-            <p className="text-slate-400 mb-2">
-              {game.players.map(p => p.legsWon).join(" - ")}
-            </p>
-            {!game.isRanked && (
-              <p className="text-[#f5a623] text-sm mb-4">Practice match - ELO unchanged</p>
+      {game.matchWinner && (() => {
+        // Get full player data with profile pictures
+        const player1Data = getPlayer(game.players[0].id);
+        const player2Data = getPlayer(game.players[1].id);
+        const player1Won = game.matchWinner === game.players[0].name;
+
+        return (
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-40 overflow-auto py-4">
+          <div className="text-center px-4 w-full max-w-md">
+            {/* Simple header when stats hidden */}
+            {!showMatchStats && (
+              <>
+                <div className="text-6xl mb-4">🏆</div>
+                <h2 className="text-4xl font-bold text-white mb-2">{game.matchWinner}</h2>
+                <p className="text-xl text-[#4ade80] mb-2">Wins!</p>
+                <p className="text-slate-400 mb-4">
+                  {game.players.map(p => p.legsWon).join(" - ")}
+                </p>
+                {!game.isRanked && (
+                  <p className="text-[#f5a623] text-sm mb-4">Practice match - ELO unchanged</p>
+                )}
+              </>
             )}
 
-            {/* Match Stats Panel */}
+            {/* Match Stats Panel with player photos */}
             {showMatchStats && (
-              <div className="bg-[#2a2a2a] rounded-2xl p-4 mb-4 text-left">
-                <h3 className="text-white font-bold text-center mb-4">Match Statistics</h3>
-
-                {/* ELO Changes - only for ranked matches */}
-                {game.isRanked && game.eloChanges && (
-                  <div className="mb-4 pb-4 border-b border-[#444]">
-                    <p className="text-slate-400 text-sm text-center mb-2">ELO Change</p>
-                    <div className="flex justify-around">
-                      {game.players.slice(0, 2).map((player, index) => {
-                        const change = index === 0 ? game.eloChanges!.player1 : game.eloChanges!.player2;
-                        return (
-                          <div key={player.id} className="text-center">
-                            <p className="text-white font-medium text-sm">{player.name}</p>
-                            <p className={`text-2xl font-bold ${change >= 0 ? "text-[#4ade80]" : "text-red-400"}`}>
-                              {change >= 0 ? "+" : ""}{change.toFixed(1)}
-                            </p>
-                          </div>
-                        );
-                      })}
+              <div className="bg-[#2a2a2a] rounded-2xl p-4 mb-4">
+                {/* Player photos header - like match details page */}
+                <div className="flex items-center justify-between mb-4">
+                  {/* Player 1 */}
+                  <div className="flex-1 text-center">
+                    <div
+                      className={`w-16 h-16 mx-auto rounded-lg overflow-hidden flex items-center justify-center text-2xl font-bold mb-2 ${
+                        !player1Data?.profilePictureUrl ? (player1Won ? "bg-[#e85d3b]" : "bg-[#444]") : ""
+                      }`}
+                    >
+                      {player1Data?.profilePictureUrl ? (
+                        <Image
+                          src={player1Data.profilePictureUrl}
+                          alt={game.players[0].name}
+                          width={64}
+                          height={64}
+                          className="object-cover w-full h-full"
+                        />
+                      ) : (
+                        <span className="text-white">{game.players[0].name.charAt(0)}</span>
+                      )}
                     </div>
+                    <p className={`font-semibold text-sm ${player1Won ? "text-white" : "text-slate-400"}`}>
+                      {game.players[0].name}
+                    </p>
+                    <p className="text-slate-500 text-xs">{game.players[0].elo.toFixed(0)} ELO</p>
+                    {game.isRanked && game.eloChanges && (
+                      <p className={`text-xs font-semibold ${game.eloChanges.player1 >= 0 ? "text-[#4ade80]" : "text-red-400"}`}>
+                        {game.eloChanges.player1 >= 0 ? "+" : ""}{game.eloChanges.player1.toFixed(2)}
+                      </p>
+                    )}
                   </div>
-                )}
 
-                {/* Player Stats Comparison */}
+                  {/* Score */}
+                  <div className="px-3">
+                    <p className="text-4xl font-bold text-white">
+                      {game.players[0].legsWon} - {game.players[1].legsWon}
+                    </p>
+                    <p className="text-slate-500 text-xs mt-1">
+                      {game.isRanked ? "Ranked" : "Practice"} • {game.gameMode}
+                    </p>
+                  </div>
+
+                  {/* Player 2 */}
+                  <div className="flex-1 text-center">
+                    <div
+                      className={`w-16 h-16 mx-auto rounded-lg overflow-hidden flex items-center justify-center text-2xl font-bold mb-2 ${
+                        !player2Data?.profilePictureUrl ? (!player1Won ? "bg-[#f5a623]" : "bg-[#444]") : ""
+                      }`}
+                    >
+                      {player2Data?.profilePictureUrl ? (
+                        <Image
+                          src={player2Data.profilePictureUrl}
+                          alt={game.players[1].name}
+                          width={64}
+                          height={64}
+                          className="object-cover w-full h-full"
+                        />
+                      ) : (
+                        <span className="text-white">{game.players[1].name.charAt(0)}</span>
+                      )}
+                    </div>
+                    <p className={`font-semibold text-sm ${!player1Won ? "text-white" : "text-slate-400"}`}>
+                      {game.players[1].name}
+                    </p>
+                    <p className="text-slate-500 text-xs">{game.players[1].elo.toFixed(0)} ELO</p>
+                    {game.isRanked && game.eloChanges && (
+                      <p className={`text-xs font-semibold ${game.eloChanges.player2 >= 0 ? "text-[#4ade80]" : "text-red-400"}`}>
+                        {game.eloChanges.player2 >= 0 ? "+" : ""}{game.eloChanges.player2.toFixed(2)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Match Statistics */}
+                <h3 className="text-white font-bold text-left mb-3">Match Statistics</h3>
+
                 <div className="space-y-3">
                   {/* Averages */}
                   <div>
-                    <p className="text-slate-400 text-xs text-center mb-1">Average</p>
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center mb-1">
                       <span className="text-white font-semibold">{getAverage(game.players[0])}</span>
-                      <div className="flex-1 mx-3 h-2 bg-[#333] rounded-full overflow-hidden flex">
-                        <div
-                          className="bg-[#e85d3b]"
-                          style={{ width: `${(parseFloat(getAverage(game.players[0])) / (parseFloat(getAverage(game.players[0])) + parseFloat(getAverage(game.players[1]))) * 100) || 50}%` }}
-                        />
-                        <div
-                          className="bg-[#f5a623]"
-                          style={{ width: `${(parseFloat(getAverage(game.players[1])) / (parseFloat(getAverage(game.players[0])) + parseFloat(getAverage(game.players[1]))) * 100) || 50}%` }}
-                        />
-                      </div>
+                      <span className="text-slate-400 text-xs">Average</span>
                       <span className="text-white font-semibold">{getAverage(game.players[1])}</span>
+                    </div>
+                    <div className="h-2 bg-[#333] rounded-full overflow-hidden flex">
+                      <div className="bg-[#e85d3b]" style={{ width: `${(parseFloat(getAverage(game.players[0])) / (parseFloat(getAverage(game.players[0])) + parseFloat(getAverage(game.players[1]))) * 100) || 50}%` }} />
+                      <div className="bg-[#f5a623]" style={{ width: `${(parseFloat(getAverage(game.players[1])) / (parseFloat(getAverage(game.players[0])) + parseFloat(getAverage(game.players[1]))) * 100) || 50}%` }} />
                     </div>
                   </div>
 
                   {/* 180s */}
                   <div>
-                    <p className="text-slate-400 text-xs text-center mb-1">180s</p>
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center mb-1">
                       <span className="text-white font-semibold">{game.players[0].oneEighties}</span>
-                      <div className="flex-1 mx-3 h-2 bg-[#333] rounded-full overflow-hidden flex">
-                        <div
-                          className="bg-[#e85d3b]"
-                          style={{ width: `${(game.players[0].oneEighties / (game.players[0].oneEighties + game.players[1].oneEighties) * 100) || 50}%` }}
-                        />
-                        <div
-                          className="bg-[#f5a623]"
-                          style={{ width: `${(game.players[1].oneEighties / (game.players[0].oneEighties + game.players[1].oneEighties) * 100) || 50}%` }}
-                        />
-                      </div>
+                      <span className="text-slate-400 text-xs">180s</span>
                       <span className="text-white font-semibold">{game.players[1].oneEighties}</span>
+                    </div>
+                    <div className="h-2 bg-[#333] rounded-full overflow-hidden flex">
+                      <div className="bg-[#e85d3b]" style={{ width: `${(game.players[0].oneEighties / Math.max(1, game.players[0].oneEighties + game.players[1].oneEighties) * 100)}%` }} />
+                      <div className="bg-[#f5a623]" style={{ width: `${(game.players[1].oneEighties / Math.max(1, game.players[0].oneEighties + game.players[1].oneEighties) * 100)}%` }} />
                     </div>
                   </div>
 
                   {/* Highest Checkout */}
                   <div>
-                    <p className="text-slate-400 text-xs text-center mb-1">Highest Checkout</p>
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center mb-1">
                       <span className="text-white font-semibold">{game.playerHighestCheckouts[0] || 0}</span>
-                      <div className="flex-1 mx-3 h-2 bg-[#333] rounded-full overflow-hidden flex">
-                        <div
-                          className="bg-[#e85d3b]"
-                          style={{ width: `${((game.playerHighestCheckouts[0] || 0) / ((game.playerHighestCheckouts[0] || 0) + (game.playerHighestCheckouts[1] || 0)) * 100) || 50}%` }}
-                        />
-                        <div
-                          className="bg-[#f5a623]"
-                          style={{ width: `${((game.playerHighestCheckouts[1] || 0) / ((game.playerHighestCheckouts[0] || 0) + (game.playerHighestCheckouts[1] || 0)) * 100) || 50}%` }}
-                        />
-                      </div>
+                      <span className="text-slate-400 text-xs">Highest Checkout</span>
                       <span className="text-white font-semibold">{game.playerHighestCheckouts[1] || 0}</span>
                     </div>
-                  </div>
-
-                  {/* Darts Thrown */}
-                  <div>
-                    <p className="text-slate-400 text-xs text-center mb-1">Darts Thrown</p>
-                    <div className="flex justify-between items-center">
-                      <span className="text-white font-semibold">{getDartsThrown(game.players[0])}</span>
-                      <div className="flex-1 mx-3 h-2 bg-[#333] rounded-full overflow-hidden flex">
-                        <div
-                          className="bg-[#e85d3b]"
-                          style={{ width: `${(getDartsThrown(game.players[0]) / (getDartsThrown(game.players[0]) + getDartsThrown(game.players[1])) * 100) || 50}%` }}
-                        />
-                        <div
-                          className="bg-[#f5a623]"
-                          style={{ width: `${(getDartsThrown(game.players[1]) / (getDartsThrown(game.players[0]) + getDartsThrown(game.players[1])) * 100) || 50}%` }}
-                        />
-                      </div>
-                      <span className="text-white font-semibold">{getDartsThrown(game.players[1])}</span>
+                    <div className="h-2 bg-[#333] rounded-full overflow-hidden flex">
+                      <div className="bg-[#e85d3b]" style={{ width: `${((game.playerHighestCheckouts[0] || 0) / Math.max(1, (game.playerHighestCheckouts[0] || 0) + (game.playerHighestCheckouts[1] || 0)) * 100)}%` }} />
+                      <div className="bg-[#f5a623]" style={{ width: `${((game.playerHighestCheckouts[1] || 0) / Math.max(1, (game.playerHighestCheckouts[0] || 0) + (game.playerHighestCheckouts[1] || 0)) * 100)}%` }} />
                     </div>
                   </div>
-                </div>
 
-                {/* Player names legend */}
-                <div className="flex justify-between mt-4 pt-3 border-t border-[#444]">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-[#e85d3b]" />
-                    <span className="text-white text-sm">{game.players[0].name}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-white text-sm">{game.players[1].name}</span>
-                    <div className="w-3 h-3 rounded-full bg-[#f5a623]" />
+                  {/* Legs Won */}
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-white font-semibold">{game.players[0].legsWon}</span>
+                      <span className="text-slate-400 text-xs">Legs Won</span>
+                      <span className="text-white font-semibold">{game.players[1].legsWon}</span>
+                    </div>
+                    <div className="h-2 bg-[#333] rounded-full overflow-hidden flex">
+                      <div className="bg-[#e85d3b]" style={{ width: `${(game.players[0].legsWon / Math.max(1, game.players[0].legsWon + game.players[1].legsWon) * 100)}%` }} />
+                      <div className="bg-[#f5a623]" style={{ width: `${(game.players[1].legsWon / Math.max(1, game.players[0].legsWon + game.players[1].legsWon) * 100)}%` }} />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1026,7 +1055,8 @@ function GameContent() {
             )}
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Confirm Leave Modal */}
       {showConfirmLeave && (
