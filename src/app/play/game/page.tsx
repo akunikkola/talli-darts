@@ -175,15 +175,20 @@ function GameContent() {
   const getDartsThrown = (player: GamePlayer) => player.throws.length * 3;
 
   const getPlayerColor = (index: number, isCurrent: boolean) => {
+    // Non-current players get dark grey background
+    if (!isCurrent) {
+      return "bg-[#2a2a2a]";
+    }
+    // Current player gets their bright color
     const colors = [
-      { active: "bg-[#e85d3b]", inactive: "bg-[#c94d2e]" },
-      { active: "bg-[#f5a623]", inactive: "bg-[#d98f1e]" },
-      { active: "bg-[#4ade80]", inactive: "bg-[#22c55e]" },
-      { active: "bg-[#3b82f6]", inactive: "bg-[#2563eb]" },
-      { active: "bg-[#a855f7]", inactive: "bg-[#9333ea]" },
-      { active: "bg-[#ec4899]", inactive: "bg-[#db2777]" },
+      "bg-[#e85d3b]", // Orange
+      "bg-[#f5a623]", // Yellow/Gold
+      "bg-[#4ade80]", // Green
+      "bg-[#3b82f6]", // Blue
+      "bg-[#a855f7]", // Purple
+      "bg-[#ec4899]", // Pink
     ];
-    return isCurrent ? colors[index % colors.length].active : colors[index % colors.length].inactive;
+    return colors[index % colors.length];
   };
 
   // Helper to round to 2 decimal places
