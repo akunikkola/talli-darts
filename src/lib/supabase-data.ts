@@ -337,6 +337,29 @@ export async function updatePlayerDb(id: string, updates: Partial<Player>): Prom
     return false;
   }
 
+  // If name was changed, update all match records with this player
+  if (updates.name) {
+    const newName = updates.name;
+
+    // Update matches where this player is player1
+    await supabase
+      .from('matches')
+      .update({ player1_name: newName })
+      .eq('player1_id', id);
+
+    // Update matches where this player is player2
+    await supabase
+      .from('matches')
+      .update({ player2_name: newName })
+      .eq('player2_id', id);
+
+    // Update matches where this player is the winner
+    await supabase
+      .from('matches')
+      .update({ winner_name: newName })
+      .eq('winner_id', id);
+  }
+
   return true;
 }
 
