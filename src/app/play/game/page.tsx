@@ -1461,19 +1461,10 @@ function GameContent() {
       {/* Round Mode: Score Input */}
       {game.inputMode === "round" && (
       <div className="px-4 mb-3">
-        <div className="flex bg-[#2a2a2a] rounded-full overflow-hidden">
-          <div className="flex-1 flex items-center px-4">
-            <span className={`text-lg ${game.currentScore ? "text-white" : "text-slate-500"}`}>
-              {game.currentScore || "Enter score"}
-            </span>
-          </div>
-          <button
-            onClick={() => handleNumberPad("submit")}
-            disabled={!game.currentScore || !!game.pendingLegWin}
-            className="bg-[#4ade80] hover:bg-[#22c55e] disabled:bg-[#2d5a3d] px-8 py-3 text-black font-semibold transition-colors"
-          >
-            Submit
-          </button>
+        <div className="bg-[#2a2a2a] rounded-full px-4 py-3">
+          <span className={`text-lg ${game.currentScore ? "text-white" : "text-slate-500"}`}>
+            {game.currentScore || "Enter score"}
+          </span>
         </div>
       </div>
       )}
