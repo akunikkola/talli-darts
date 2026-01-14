@@ -841,7 +841,7 @@ function GameContent() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#1a1a1a] select-none">
+    <div className="h-screen flex flex-col bg-[#1a1a1a] select-none overflow-hidden">
       {/* Leg Win Confirmation */}
       {game.pendingLegWin && (
         <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
@@ -1427,7 +1427,7 @@ function GameContent() {
 
       {/* Round Mode: Number Pad */}
       {game.inputMode === "round" && (
-      <div className="flex-1 px-4 pb-4">
+      <div className="flex-1 min-h-0 px-4 pb-4">
         <div className="grid grid-cols-3 gap-2 h-full">
           {["1", "2", "3", "4", "5", "6", "7", "8", "9", "undo", "0", "clear"].map((key) => (
             <button
@@ -1440,7 +1440,7 @@ function GameContent() {
                 }
               }}
               disabled={game.gameOver || !!game.pendingLegWin}
-              className="bg-[#2a2a2a] hover:bg-[#333] active:bg-[#4ade80] active:text-black rounded-xl flex items-center justify-center text-2xl font-bold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-[#2a2a2a] hover:bg-[#333] active:bg-[#4ade80] active:text-black rounded-lg flex items-center justify-center text-2xl font-bold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {key === "undo" ? (
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
