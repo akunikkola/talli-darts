@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { getCheckoutSuggestion } from "@/lib/darts";
@@ -89,6 +89,20 @@ function GameContent() {
   const [editThrowValue, setEditThrowValue] = useState("");
   const [showModeSelector, setShowModeSelector] = useState(false);
   const [showMatchStats, setShowMatchStats] = useState(false);
+
+  // Ref for horizontal scoreboard scrolling (3+ players)
+  const scoreboardRef = useRef<HTMLDivElement>(null);
+  const playerCardRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Auto-scroll to current player when turn changes (for 3+ players)
+  useEffect(() => {
+    if (game && game.players.length > 2 && scoreboardRef.current) {
+      const currentCard = playerCardRefs.current[game.currentPlayerIndex];
+      if (currentCard) {
+        currentCard.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+      }
+    }
+  }, [game?.currentPlayerIndex, game?.players.length]);
 
   useEffect(() => {
     // Only initialize the game once - don't re-run when player data updates
@@ -1204,39 +1218,78 @@ function GameContent() {
 
       {/* Player Cards */}
       <div className="px-4 mb-3">
-        <div className={`flex rounded-2xl overflow-hidden ${game.players.length > 2 ? "flex-wrap gap-1" : ""}`}>
-          {game.players.map((player, index) => (
-            <div
-              key={player.id}
-              className={`${game.players.length <= 2 ? "flex-1" : "flex-1 min-w-[48%]"} p-3 ${getPlayerColor(index, game.currentPlayerIndex === index)}`}
-            >
-              <div className="flex items-center gap-2 mb-1">
-                {game.currentPlayerIndex === index && <span className="w-2 h-2 rounded-full bg-white" />}
-                <span className="text-white font-medium truncate text-sm">{player.name}</span>
-              </div>
-              <div className="flex items-start justify-between">
-                <span className="text-5xl font-bold text-white">{player.remaining}</span>
-                <span className="bg-black/30 text-white text-sm font-bold w-7 h-7 rounded-lg flex items-center justify-center">
-                  {player.legsWon}
-                </span>
-              </div>
-              <div className="mt-2 space-y-0.5 text-xs">
-                <div className="flex justify-between text-white/80">
-                  <span>Avg</span>
-                  <span className="font-medium">{getAverage(player)}</span>
+        {game.players.length <= 2 ? (
+          // 2 players: side by side
+          <div className="flex rounded-2xl overflow-hidden">
+            {game.players.map((player, index) => (
+              <div
+                key={player.id}
+                className={`flex-1 p-3 ${getPlayerColor(index, game.currentPlayerIndex === index)}`}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  {game.currentPlayerIndex === index && <span className="w-2 h-2 rounded-full bg-white" />}
+                  <span className="text-white font-medium truncate text-sm">{player.name}</span>
                 </div>
-                <div className="flex justify-between text-white/80">
-                  <span>Last</span>
-                  <span className="font-medium">{player.lastScore ?? "-"}</span>
+                <div className="flex items-start justify-between">
+                  <span className="text-5xl font-bold text-white">{player.remaining}</span>
+                  <span className="bg-black/30 text-white text-sm font-bold w-7 h-7 rounded-lg flex items-center justify-center">
+                    {player.legsWon}
+                  </span>
                 </div>
-                <div className="flex justify-between text-white/80">
-                  <span>Darts</span>
-                  <span className="font-medium">{getDartsThrown(player)}</span>
+                <div className="mt-2 space-y-0.5 text-xs">
+                  <div className="flex justify-between text-white/80">
+                    <span>Avg</span>
+                    <span className="font-medium">{getAverage(player)}</span>
+                  </div>
+                  <div className="flex justify-between text-white/80">
+                    <span>Last</span>
+                    <span className="font-medium">{player.lastScore ?? "-"}</span>
+                  </div>
+                  <div className="flex justify-between text-white/80">
+                    <span>Darts</span>
+                    <span className="font-medium">{getDartsThrown(player)}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          // 3+ players: horizontal scroll
+          <div
+            ref={scoreboardRef}
+            className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 snap-x snap-mandatory"
+            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+          >
+            {game.players.map((player, index) => (
+              <div
+                key={player.id}
+                ref={(el) => { playerCardRefs.current[index] = el; }}
+                className={`flex-shrink-0 w-36 p-3 rounded-xl snap-center ${getPlayerColor(index, game.currentPlayerIndex === index)}`}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  {game.currentPlayerIndex === index && <span className="w-2 h-2 rounded-full bg-white" />}
+                  <span className="text-white font-medium truncate text-sm">{player.name}</span>
+                </div>
+                <div className="flex items-start justify-between">
+                  <span className="text-4xl font-bold text-white">{player.remaining}</span>
+                  <span className="bg-black/30 text-white text-xs font-bold w-6 h-6 rounded-lg flex items-center justify-center">
+                    {player.legsWon}
+                  </span>
+                </div>
+                <div className="mt-1 space-y-0.5 text-xs">
+                  <div className="flex justify-between text-white/80">
+                    <span>Avg</span>
+                    <span className="font-medium">{getAverage(player)}</span>
+                  </div>
+                  <div className="flex justify-between text-white/80">
+                    <span>Last</span>
+                    <span className="font-medium">{player.lastScore ?? "-"}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Turn Indicator */}
