@@ -329,13 +329,8 @@ export default function Home() {
                   size="sm"
                   className="ml-3"
                 />
-                <div className="flex-1 ml-3 flex items-center gap-2">
+                <div className="flex-1 ml-3">
                   <span className="text-white">{player.name}</span>
-                  {player.club && (
-                    <span className="text-xs bg-[#4ade80]/20 text-[#4ade80] px-2 py-0.5 rounded-full">
-                      {player.club}
-                    </span>
-                  )}
                 </div>
                 <span className="text-slate-400 text-sm mr-4">
                   {getWins(player)}W - {getLosses(player)}L

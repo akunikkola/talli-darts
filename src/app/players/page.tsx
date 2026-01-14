@@ -44,11 +44,6 @@ export default function Players() {
       >
         <div className="flex items-center gap-2">
           <span className="text-white font-medium">{player.name}</span>
-          {player.club && (
-            <span className="text-xs bg-[#4ade80]/20 text-[#4ade80] px-2 py-0.5 rounded-full">
-              {player.club}
-            </span>
-          )}
         </div>
         <div className="flex gap-3 text-xs text-slate-500">
           <span>{player.wins}W - {player.losses}L</span>
