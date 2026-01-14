@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, useCallback } from "react";
 import { useData } from "@/context/DataContext";
 import type { Player } from "@/lib/supabase-data";
 import PlayerAvatar from "@/components/PlayerAvatar";
@@ -28,9 +28,55 @@ const getWeekStart = () => {
 };
 
 export default function Home() {
-  const { players, matches, loading } = useData();
+  const { players, matches, loading, refreshData } = useData();
   const [rankingType, setRankingType] = useState<RankingType>("overall");
   const [matchFilter, setMatchFilter] = useState<MatchFilterType>("all");
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [pullDistance, setPullDistance] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const touchStartY = useRef(0);
+  const isPulling = useRef(false);
+
+  const PULL_THRESHOLD = 80;
+
+  const handleRefresh = useCallback(async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await refreshData();
+    } finally {
+      setIsRefreshing(false);
+      setPullDistance(0);
+    }
+  }, [refreshData, isRefreshing]);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const container = containerRef.current;
+    if (container && container.scrollTop === 0) {
+      touchStartY.current = e.touches[0].clientY;
+      isPulling.current = true;
+    }
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isPulling.current || isRefreshing) return;
+    const container = containerRef.current;
+    if (container && container.scrollTop === 0) {
+      const touchY = e.touches[0].clientY;
+      const distance = Math.max(0, touchY - touchStartY.current);
+      // Apply resistance
+      setPullDistance(Math.min(distance * 0.5, PULL_THRESHOLD * 1.5));
+    }
+  }, [isRefreshing]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (pullDistance >= PULL_THRESHOLD) {
+      handleRefresh();
+    } else {
+      setPullDistance(0);
+    }
+    isPulling.current = false;
+  }, [pullDistance, handleRefresh]);
 
   const getElo = (player: Player) => {
     switch (rankingType) {
@@ -139,12 +185,61 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-[#1a1a1a] p-4">
+    <div
+      ref={containerRef}
+      className="min-h-screen bg-[#1a1a1a] p-4 overflow-auto"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Pull to refresh indicator */}
+      {(pullDistance > 0 || isRefreshing) && (
+        <div
+          className="flex justify-center items-center transition-all duration-200"
+          style={{ height: isRefreshing ? 50 : pullDistance }}
+        >
+          <div className={`${isRefreshing ? 'animate-spin' : ''}`}>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6 text-[#4ade80]"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              style={{
+                transform: isRefreshing ? 'none' : `rotate(${pullDistance * 3}deg)`,
+                opacity: Math.min(pullDistance / PULL_THRESHOLD, 1)
+              }}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
-      <div className="text-center py-6">
-        <h1 className="text-4xl font-bold text-white">Talli Darts</h1>
-        <p className="text-slate-400 mt-1">Who do you think you are? I am!</p>
-        <p className="text-slate-600 text-xs mt-1">v2.2</p>
+      <div className="relative py-6">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold text-white">Talli Darts</h1>
+          <p className="text-slate-400 mt-1">Who do you think you are? I am!</p>
+          <p className="text-slate-600 text-xs mt-1">v2.3</p>
+        </div>
+        {/* Refresh button */}
+        <button
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          className="absolute right-0 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-white disabled:opacity-50 transition-colors"
+          title="Refresh"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className={`h-6 w-6 ${isRefreshing ? 'animate-spin' : ''}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </button>
       </div>
 
       {/* Match Type Buttons */}
