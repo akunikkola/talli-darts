@@ -14,6 +14,7 @@ interface PlayerState {
   marks: Record<CricketNumber, number>; // 0+ marks per number
   points: number;
   roundsWon: number;
+  color: string;
 }
 
 // Action history for undo
@@ -24,13 +25,19 @@ interface HistoryEntry {
   previousPoints: number;
 }
 
+const PLAYER_COLORS = [
+  { bg: "bg-[#e85d3b]", text: "text-[#e85d3b]", mark: "#e85d3b" },
+  { bg: "bg-[#f5a623]", text: "text-[#f5a623]", mark: "#f5a623" },
+  { bg: "bg-[#4ade80]", text: "text-[#4ade80]", mark: "#4ade80" },
+  { bg: "bg-[#3b82f6]", text: "text-[#3b82f6]", mark: "#3b82f6" },
+];
+
 function CricketGameContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { getPlayer, saveMatch, loading: dataLoading } = useData();
 
   const [cricketPlayers, setCricketPlayers] = useState<PlayerState[]>([]);
-  const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [winner, setWinner] = useState<Player | null>(null);
   const [showConfirmQuit, setShowConfirmQuit] = useState(false);
@@ -42,7 +49,7 @@ function CricketGameContent() {
     const playerIds = searchParams.get("players")?.split(",") || [];
 
     const loadedPlayers: PlayerState[] = [];
-    playerIds.forEach((id) => {
+    playerIds.forEach((id, index) => {
       const player = getPlayer(id);
       if (player) {
         loadedPlayers.push({
@@ -50,6 +57,7 @@ function CricketGameContent() {
           marks: { 20: 0, 19: 0, 18: 0, 17: 0, 16: 0, 15: 0, 25: 0 },
           points: 0,
           roundsWon: 0,
+          color: PLAYER_COLORS[index % PLAYER_COLORS.length].mark,
         });
       }
     });
@@ -72,9 +80,6 @@ function CricketGameContent() {
   // Handle tapping on a player's mark area - adds 1 hit
   const handleMarkTap = (playerIndex: number, number: CricketNumber) => {
     if (gameOver) return;
-
-    // Can only mark for current player
-    if (playerIndex !== currentPlayerIndex) return;
 
     // Can't mark if closed by all
     if (isClosedByAll(number)) return;
@@ -168,12 +173,12 @@ function CricketGameContent() {
   };
 
   // Render mark indicator based on hit count
-  const renderMark = (marks: number, isCurrentPlayer: boolean, isClosed: boolean) => {
-    // If closed by all, show grey/muted
-    if (isClosed) {
+  const renderMark = (marks: number, color: string, isClosed: boolean) => {
+    // If closed by all, show muted
+    if (isClosed && marks < 3) {
       return (
-        <div className="w-16 h-10 flex items-center justify-center">
-          <div className="w-12 h-1.5 rounded-full bg-[#555]" />
+        <div className="w-14 h-10 flex items-center justify-center">
+          <div className="w-10 h-1 rounded-full bg-[#444]" />
         </div>
       );
     }
@@ -181,8 +186,8 @@ function CricketGameContent() {
     // 0 hits - empty pill
     if (marks === 0) {
       return (
-        <div className="w-16 h-10 flex items-center justify-center">
-          <div className="w-12 h-1.5 rounded-full bg-[#555]" />
+        <div className="w-14 h-10 flex items-center justify-center">
+          <div className="w-10 h-1 rounded-full bg-[#444]" />
         </div>
       );
     }
@@ -190,9 +195,9 @@ function CricketGameContent() {
     // 1 hit - single slash
     if (marks === 1) {
       return (
-        <div className="w-16 h-10 flex items-center justify-center">
-          <svg viewBox="0 0 40 30" className="w-10 h-8">
-            <line x1="10" y1="25" x2="30" y2="5" stroke="#e85d3b" strokeWidth="4" strokeLinecap="round" />
+        <div className="w-14 h-10 flex items-center justify-center">
+          <svg viewBox="0 0 40 30" className="w-9 h-7">
+            <line x1="10" y1="24" x2="30" y2="6" stroke={color} strokeWidth="4" strokeLinecap="round" />
           </svg>
         </div>
       );
@@ -201,10 +206,10 @@ function CricketGameContent() {
     // 2 hits - X cross
     if (marks === 2) {
       return (
-        <div className="w-16 h-10 flex items-center justify-center">
-          <svg viewBox="0 0 40 30" className="w-10 h-8">
-            <line x1="10" y1="25" x2="30" y2="5" stroke="#e85d3b" strokeWidth="4" strokeLinecap="round" />
-            <line x1="10" y1="5" x2="30" y2="25" stroke="#e85d3b" strokeWidth="4" strokeLinecap="round" />
+        <div className="w-14 h-10 flex items-center justify-center">
+          <svg viewBox="0 0 40 30" className="w-9 h-7">
+            <line x1="10" y1="24" x2="30" y2="6" stroke={color} strokeWidth="4" strokeLinecap="round" />
+            <line x1="10" y1="6" x2="30" y2="24" stroke={color} strokeWidth="4" strokeLinecap="round" />
           </svg>
         </div>
       );
@@ -212,11 +217,11 @@ function CricketGameContent() {
 
     // 3+ hits - X with circle (closed)
     return (
-      <div className="w-16 h-10 flex items-center justify-center">
-        <svg viewBox="0 0 40 30" className="w-10 h-8">
-          <circle cx="20" cy="15" r="12" fill="none" stroke="#e85d3b" strokeWidth="3" />
-          <line x1="12" y1="22" x2="28" y2="8" stroke="#e85d3b" strokeWidth="3" strokeLinecap="round" />
-          <line x1="12" y1="8" x2="28" y2="22" stroke="#e85d3b" strokeWidth="3" strokeLinecap="round" />
+      <div className="w-14 h-10 flex items-center justify-center">
+        <svg viewBox="0 0 40 30" className="w-9 h-7">
+          <circle cx="20" cy="15" r="11" fill="none" stroke={color} strokeWidth="2.5" />
+          <line x1="12" y1="21" x2="28" y2="9" stroke={color} strokeWidth="3" strokeLinecap="round" />
+          <line x1="12" y1="9" x2="28" y2="21" stroke={color} strokeWidth="3" strokeLinecap="round" />
         </svg>
       </div>
     );
@@ -224,7 +229,7 @@ function CricketGameContent() {
 
   if (cricketPlayers.length < 2) {
     return (
-      <div className="h-dvh bg-[#3a3a3c] flex items-center justify-center">
+      <div className="h-dvh bg-[#1a1a1a] flex items-center justify-center">
         <p className="text-white">Loading...</p>
       </div>
     );
@@ -234,87 +239,109 @@ function CricketGameContent() {
   const player2 = cricketPlayers[1];
 
   return (
-    <div className="h-dvh bg-[#3a3a3c] flex flex-col select-none overflow-hidden">
-      {/* Player Headers */}
-      <div className="flex">
-        {/* Player 1 */}
-        <div className={`flex-1 pt-6 pb-4 text-center ${currentPlayerIndex === 0 ? "" : "opacity-60"}`}>
-          <p className="text-[#8e8e93] text-sm">Rounds won: {player1.roundsWon}</p>
-          <p className="text-white text-2xl font-semibold mt-1">{player1.player.name}</p>
-          <p className="text-white text-6xl font-bold mt-2">{player1.points}</p>
+    <div className="h-dvh bg-[#1a1a1a] flex flex-col select-none overflow-hidden">
+      {/* Header */}
+      <div className="py-3 px-4 flex items-center justify-between">
+        <button
+          onClick={() => setShowConfirmQuit(true)}
+          className="text-slate-400 p-2"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <div className="text-center">
+          <h1 className="text-white font-bold tracking-wide">CRICKET</h1>
+          <p className="text-[#f5a623] text-xs">Practice</p>
         </div>
-        {/* Player 2 */}
-        <div className={`flex-1 pt-6 pb-4 text-center ${currentPlayerIndex === 1 ? "" : "opacity-60"}`}>
-          <p className="text-[#8e8e93] text-sm">Rounds won: {player2.roundsWon}</p>
-          <p className="text-white text-2xl font-semibold mt-1">{player2.player.name}</p>
-          <p className="text-white text-6xl font-bold mt-2">{player2.points}</p>
+        <button
+          onClick={undo}
+          disabled={history.length === 0}
+          className="text-slate-400 p-2 disabled:opacity-30"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a5 5 0 015 5v2M3 10l4-4m-4 4l4 4" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Player Score Cards */}
+      <div className="px-4 mb-3">
+        <div className="flex rounded-2xl overflow-hidden">
+          {/* Player 1 */}
+          <div className={`flex-1 p-3 ${PLAYER_COLORS[0].bg}`}>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-white font-medium truncate text-sm">{player1.player.name}</span>
+            </div>
+            <div className="flex items-start justify-between">
+              <span className="text-5xl font-bold text-white">{player1.points}</span>
+              <span className="bg-black/30 text-white text-sm font-bold w-7 h-7 rounded-lg flex items-center justify-center">
+                {player1.roundsWon}
+              </span>
+            </div>
+          </div>
+          {/* Player 2 */}
+          <div className={`flex-1 p-3 ${PLAYER_COLORS[1].bg}`}>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-white font-medium truncate text-sm">{player2.player.name}</span>
+            </div>
+            <div className="flex items-start justify-between">
+              <span className="text-5xl font-bold text-white">{player2.points}</span>
+              <span className="bg-black/30 text-white text-sm font-bold w-7 h-7 rounded-lg flex items-center justify-center">
+                {player2.roundsWon}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Cricket Grid */}
-      <div className="flex-1 flex flex-col justify-center px-4">
-        {CRICKET_NUMBERS.map((num) => {
-          const closedByAll = isClosedByAll(num);
-          return (
-            <div key={num} className="flex items-center py-2">
-              {/* Player 1 mark - tappable */}
-              <button
-                onClick={() => handleMarkTap(0, num)}
-                disabled={gameOver || currentPlayerIndex !== 0 || closedByAll}
-                className="flex-1 flex justify-center items-center py-1 active:opacity-70 disabled:opacity-100"
-              >
-                {renderMark(player1.marks[num], currentPlayerIndex === 0, closedByAll)}
-              </button>
+      <div className="flex-1 px-4">
+        <div className="bg-[#2a2a2a] rounded-2xl p-3 h-full flex flex-col justify-around">
+          {CRICKET_NUMBERS.map((num) => {
+            const closedByAll = isClosedByAll(num);
+            return (
+              <div key={num} className="flex items-center">
+                {/* Player 1 mark - tappable */}
+                <button
+                  onClick={() => handleMarkTap(0, num)}
+                  disabled={gameOver || closedByAll}
+                  className="flex-1 flex justify-center items-center py-1 active:scale-95 transition-transform disabled:active:scale-100"
+                >
+                  {renderMark(player1.marks[num], player1.color, closedByAll)}
+                </button>
 
-              {/* Number in center */}
-              <div className="w-16 text-center">
-                <span className={`text-3xl font-light ${closedByAll ? "text-[#555]" : "text-[#8e8e93]"}`}>
-                  {num === 25 ? "B" : num}
-                </span>
+                {/* Number in center */}
+                <div className="w-14 text-center">
+                  <span className={`text-2xl font-bold ${closedByAll ? "text-[#444]" : "text-white"}`}>
+                    {num === 25 ? "B" : num}
+                  </span>
+                </div>
+
+                {/* Player 2 mark - tappable */}
+                <button
+                  onClick={() => handleMarkTap(1, num)}
+                  disabled={gameOver || closedByAll}
+                  className="flex-1 flex justify-center items-center py-1 active:scale-95 transition-transform disabled:active:scale-100"
+                >
+                  {renderMark(player2.marks[num], player2.color, closedByAll)}
+                </button>
               </div>
-
-              {/* Player 2 mark - tappable */}
-              <button
-                onClick={() => handleMarkTap(1, num)}
-                disabled={gameOver || currentPlayerIndex !== 1 || closedByAll}
-                className="flex-1 flex justify-center items-center py-1 active:opacity-70 disabled:opacity-100"
-              >
-                {renderMark(player2.marks[num], currentPlayerIndex === 1, closedByAll)}
-              </button>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
-      {/* Bottom Controls */}
-      <div className="flex justify-between items-center px-6 py-6">
-        <button
-          onClick={() => setShowConfirmQuit(true)}
-          className="text-white text-lg font-medium"
-        >
-          Exit
-        </button>
-
-        {/* Next Player Button */}
-        <button
-          onClick={() => setCurrentPlayerIndex((currentPlayerIndex + 1) % 2)}
-          className="px-6 py-2 bg-[#4ade80] rounded-full text-black font-semibold"
-        >
-          Next Player
-        </button>
-
-        <button
-          onClick={undo}
-          disabled={history.length === 0}
-          className="text-white text-lg font-medium disabled:opacity-40"
-        >
-          Undo
-        </button>
+      {/* Bottom hint */}
+      <div className="px-4 py-4">
+        <p className="text-slate-500 text-xs text-center">
+          Tap marks to score • Double tap for doubles • Triple tap for triples
+        </p>
       </div>
 
       {/* Winner Modal */}
       {gameOver && winner && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
           <div className="bg-[#2a2a2a] rounded-2xl p-6 w-full max-w-sm text-center">
             <div className="text-5xl mb-4">🏆</div>
             <h2 className="text-white font-bold text-3xl mb-2">
@@ -327,7 +354,7 @@ function CricketGameContent() {
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={undo}
-                className="py-3 bg-[#444] hover:bg-[#555] text-white rounded-xl font-semibold"
+                className="py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-semibold"
               >
                 Undo
               </button>
@@ -344,24 +371,24 @@ function CricketGameContent() {
 
       {/* Confirm Quit Modal */}
       {showConfirmQuit && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
           <div className="bg-[#2a2a2a] rounded-2xl p-6 w-full max-w-sm text-center">
-            <h3 className="text-white font-bold text-xl mb-2">Quit Game?</h3>
+            <h3 className="text-white font-bold text-xl mb-2">Leave Game?</h3>
             <p className="text-slate-400 mb-6">
               Progress will not be saved.
             </p>
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => setShowConfirmQuit(false)}
-                className="py-3 bg-[#444] hover:bg-[#555] text-white rounded-xl font-semibold"
+                className="py-3 bg-[#4ade80] hover:bg-[#22c55e] text-black rounded-xl font-semibold"
               >
-                Cancel
+                Continue
               </button>
               <button
                 onClick={() => router.push("/")}
-                className="py-3 bg-[#e85d3b] hover:bg-[#d14a2a] text-white rounded-xl font-semibold"
+                className="py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-semibold"
               >
-                Quit
+                Leave
               </button>
             </div>
           </div>
@@ -375,7 +402,7 @@ export default function CricketGame() {
   return (
     <Suspense
       fallback={
-        <div className="h-dvh bg-[#3a3a3c] flex items-center justify-center">
+        <div className="h-dvh bg-[#1a1a1a] flex items-center justify-center">
           <p className="text-white">Loading...</p>
         </div>
       }
