@@ -841,7 +841,7 @@ function GameContent() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-[#1a1a1a] select-none overflow-hidden">
+    <div className="h-dvh flex flex-col bg-[#1a1a1a] select-none overflow-hidden">
       {/* Leg Win Confirmation */}
       {game.pendingLegWin && (
         <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
