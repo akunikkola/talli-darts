@@ -187,7 +187,7 @@ export default function Home() {
   return (
     <div
       ref={containerRef}
-      className="min-h-screen bg-[#1a1a1a] p-4 overflow-auto"
+      className="min-h-screen bg-[#1a1a1a] p-4 overflow-auto relative"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -216,30 +216,29 @@ export default function Home() {
         </div>
       )}
 
-      {/* Header */}
-      <div className="relative py-6">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-white">Talli Darts</h1>
-          <p className="text-slate-400 mt-1">Who do you think you are? I am!</p>
-          <p className="text-slate-600 text-xs mt-1">v2.3</p>
-        </div>
-        {/* Refresh button */}
-        <button
-          onClick={handleRefresh}
-          disabled={isRefreshing}
-          className="absolute right-0 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-white disabled:opacity-50 transition-colors"
-          title="Refresh"
+      {/* Refresh button - top right */}
+      <button
+        onClick={handleRefresh}
+        disabled={isRefreshing}
+        className="absolute right-4 top-4 p-2 text-slate-400 hover:text-white disabled:opacity-50 transition-colors z-10"
+        title="Refresh"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className={`h-6 w-6 ${isRefreshing ? 'animate-spin' : ''}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className={`h-6 w-6 ${isRefreshing ? 'animate-spin' : ''}`}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-        </button>
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+      </button>
+
+      {/* Header */}
+      <div className="text-center py-6">
+        <h1 className="text-4xl font-bold text-white">Talli Darts</h1>
+        <p className="text-slate-400 mt-1">Who do you think you are? I am!</p>
+        <p className="text-slate-600 text-xs mt-1">v2.3</p>
       </div>
 
       {/* Match Type Buttons */}
