@@ -17,6 +17,7 @@ export default function RankingSetup() {
   const [starterIndex, setStarterIndex] = useState<0 | 1>(0);
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [newPlayerName, setNewPlayerName] = useState("");
+  const [isAdding, setIsAdding] = useState(false);
 
   const allPlayers = [...players].sort((a, b) => a.name.localeCompare(b.name));
   const talliPlayers = allPlayers.filter(p => p.group === "talli");
@@ -51,10 +52,15 @@ export default function RankingSetup() {
   };
 
   const handleAddPlayer = async () => {
-    if (!newPlayerName.trim()) return;
-    await addPlayer(newPlayerName.trim(), "visitor");
-    setNewPlayerName("");
-    setShowAddPlayer(false);
+    if (!newPlayerName.trim() || isAdding) return;
+    setIsAdding(true);
+    try {
+      await addPlayer(newPlayerName.trim(), "visitor");
+      setNewPlayerName("");
+      setShowAddPlayer(false);
+    } finally {
+      setIsAdding(false);
+    }
   };
 
   const selectPlayer = (player: Player) => {
@@ -285,10 +291,10 @@ export default function RankingSetup() {
               </button>
               <button
                 onClick={handleAddPlayer}
-                disabled={!newPlayerName.trim()}
+                disabled={!newPlayerName.trim() || isAdding}
                 className="py-3 bg-[#4ade80] hover:bg-[#22c55e] disabled:bg-[#333] text-black disabled:text-slate-500 rounded-xl font-semibold"
               >
-                Add
+                {isAdding ? "Adding..." : "Add"}
               </button>
             </div>
           </div>
