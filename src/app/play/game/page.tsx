@@ -1482,7 +1482,7 @@ function GameContent() {
       {game.inputMode === "round" && (
       <div className="flex-1 min-h-0 px-4 pb-4">
         <div className="grid grid-cols-3 gap-2 h-full">
-          {["1", "2", "3", "4", "5", "6", "7", "8", "9", "undo", "0", "clear"].map((key) => (
+          {["1", "2", "3", "4", "5", "6", "7", "8", "9", "clear", "0", "submit"].map((key) => (
             <button
               key={key}
               onClick={() => {
@@ -1492,15 +1492,19 @@ function GameContent() {
                   handleNumberPad(key);
                 }
               }}
-              disabled={game.gameOver || !!game.pendingLegWin}
-              className="bg-[#2a2a2a] hover:bg-[#333] active:bg-[#4ade80] active:text-black rounded-lg flex items-center justify-center text-2xl font-bold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={game.gameOver || !!game.pendingLegWin || (key === "submit" && !game.currentScore)}
+              className={`${
+                key === "submit"
+                  ? "bg-[#4ade80] hover:bg-[#22c55e] text-black"
+                  : "bg-[#2a2a2a] hover:bg-[#333] active:bg-[#4ade80] active:text-black text-white"
+              } rounded-lg flex items-center justify-center text-2xl font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
             >
-              {key === "undo" ? (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a5 5 0 015 5v2M3 10l4-4m-4 4l4 4" />
-                </svg>
-              ) : key === "clear" ? (
+              {key === "clear" ? (
                 <span className="text-xl font-bold">C</span>
+              ) : key === "submit" ? (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
               ) : (
                 key
               )}
