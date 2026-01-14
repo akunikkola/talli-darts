@@ -168,9 +168,62 @@ export const CHECKOUTS: Record<number, string[]> = {
   2: ["D1"],
 };
 
-export function getCheckoutSuggestion(remaining: number): string[] | null {
+export function getCheckoutSuggestion(remaining: number, dartsRemaining: number = 3): string[] | null {
   if (remaining > 170 || remaining < 2) return null;
-  return CHECKOUTS[remaining] || null;
+
+  const checkout = CHECKOUTS[remaining];
+  if (!checkout) return null;
+
+  // If we have enough darts for the standard checkout, use it
+  if (checkout.length <= dartsRemaining) {
+    return checkout;
+  }
+
+  // Need to find a shorter checkout
+  // Single-dart checkouts (doubles only, or Bull for 50)
+  if (dartsRemaining === 1) {
+    if (remaining === 50) return ["Bull"];
+    if (remaining <= 40 && remaining % 2 === 0) return [`D${remaining / 2}`];
+    return null; // Can't checkout in 1 dart
+  }
+
+  // Two-dart checkouts
+  if (dartsRemaining === 2) {
+    // Check if there's a 2-dart checkout in our table
+    if (checkout.length === 2) return checkout;
+
+    // For 50, we can do S10 + D20 or just Bull (but Bull is 1 dart, so prefer a 2-dart)
+    if (remaining === 50) return ["S10", "D20"];
+
+    // Try to find a 2-dart solution: single + double
+    // For scores up to 60, try S(x) + D(remaining-x)/2
+    for (let single = 1; single <= 20; single++) {
+      const afterSingle = remaining - single;
+      if (afterSingle >= 2 && afterSingle <= 40 && afterSingle % 2 === 0) {
+        return [`S${single}`, `D${afterSingle / 2}`];
+      }
+    }
+
+    // Try treble + double for higher scores
+    for (let treble = 1; treble <= 20; treble++) {
+      const afterTreble = remaining - (treble * 3);
+      if (afterTreble >= 2 && afterTreble <= 40 && afterTreble % 2 === 0) {
+        return [`T${treble}`, `D${afterTreble / 2}`];
+      }
+    }
+
+    // Try double + double (e.g., for 64: D16 + D16)
+    for (let double1 = 1; double1 <= 20; double1++) {
+      const afterDouble = remaining - (double1 * 2);
+      if (afterDouble >= 2 && afterDouble <= 40 && afterDouble % 2 === 0) {
+        return [`D${double1}`, `D${afterDouble / 2}`];
+      }
+    }
+
+    return null; // Can't find a 2-dart checkout
+  }
+
+  return checkout;
 }
 
 export function isBust(remaining: number, score: number): boolean {

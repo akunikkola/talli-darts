@@ -55,6 +55,8 @@ interface DbMatch {
   played_at: string;
   player_count: number;
   all_player_names: string | null;
+  player1_darts: number | null;
+  player2_darts: number | null;
 }
 
 // Player type that matches our app's interface
@@ -113,6 +115,8 @@ export interface MatchResult {
   playedAt: string;
   playerCount: number; // Number of players (2 for 1v1, more for multi-player)
   allPlayerNames?: string; // Comma-separated names for multi-player matches
+  player1Darts?: number; // Total darts thrown by player 1
+  player2Darts?: number; // Total darts thrown by player 2
 }
 
 // Convert DB player to app player
@@ -204,6 +208,8 @@ function dbToMatch(db: DbMatch): MatchResult {
     playedAt: db.played_at,
     playerCount: db.player_count || 2,
     allPlayerNames: db.all_player_names || undefined,
+    player1Darts: db.player1_darts || undefined,
+    player2Darts: db.player2_darts || undefined,
   };
 }
 
@@ -236,6 +242,8 @@ function matchToDb(match: Partial<MatchResult> & { id: string }): Partial<DbMatc
     played_at: match.playedAt || new Date().toISOString(),
     player_count: match.playerCount || 2,
     all_player_names: match.allPlayerNames || null,
+    player1_darts: match.player1Darts || null,
+    player2_darts: match.player2Darts || null,
   };
 }
 

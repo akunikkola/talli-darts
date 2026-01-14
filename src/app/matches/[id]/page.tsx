@@ -300,6 +300,14 @@ export default function MatchDetail() {
             value2={match.player2OneEighties}
           />
 
+          {(match.player1Darts || match.player2Darts) && (
+            <StatBar
+              label="Darts"
+              value1={match.player1Darts || 0}
+              value2={match.player2Darts || 0}
+            />
+          )}
+
           <StatBar
             label="Highest Checkout"
             value1={match.player1HighestCheckout}
