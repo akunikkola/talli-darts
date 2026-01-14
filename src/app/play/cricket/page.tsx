@@ -273,43 +273,25 @@ function CricketGameContent() {
         </button>
       </div>
 
-      {/* Player Score Cards */}
-      <div className="px-4 mb-3">
-        <div className={`flex rounded-2xl overflow-hidden ${isCompact ? "overflow-x-auto" : ""}`}>
-          {cricketPlayers.map((p, index) => (
-            <div
-              key={p.player.id}
-              className={`${isCompact ? "min-w-[120px]" : "flex-1"} p-3 ${PLAYER_COLORS[index % PLAYER_COLORS.length].bg}`}
-            >
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-white font-medium truncate text-sm">{p.player.name}</span>
-              </div>
-              <div className="flex items-start justify-between">
-                <span className={`${isCompact ? "text-3xl" : "text-5xl"} font-bold text-white`}>{p.points}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* Cricket Grid */}
       <div className="flex-1 px-4 overflow-hidden">
-        <div className="bg-[#2a2a2a] rounded-2xl p-3 h-full flex flex-col justify-around">
-          {/* Player name headers */}
-          <div className="flex items-center mb-2">
+        <div className="bg-[#2a2a2a] rounded-2xl p-3 h-full flex flex-col">
+          {/* Player name/score boxes inside the grid */}
+          <div className="flex items-center gap-1 mb-2">
             {cricketPlayers.map((p, index) => (
-              <div key={`header-${p.player.id}`} className="flex-1 text-center">
-                <span
-                  className="text-xs font-medium truncate"
-                  style={{ color: PLAYER_COLORS[index % PLAYER_COLORS.length].mark }}
-                >
-                  {p.player.name.split(" ")[0]}
-                </span>
+              <div
+                key={`header-${p.player.id}`}
+                className={`flex-1 py-1.5 px-1 rounded-lg text-center ${PLAYER_COLORS[index % PLAYER_COLORS.length].bg}`}
+              >
+                <p className="text-white text-xs font-medium truncate">{p.player.name.split(" ")[0]}</p>
+                <p className="text-white text-lg font-bold">{p.points}</p>
               </div>
             ))}
             <div className="w-10" /> {/* Spacer for number column */}
           </div>
 
+          {/* Numbers grid */}
+          <div className="flex-1 flex flex-col justify-around">
           {CRICKET_NUMBERS.map((num) => {
             const closedByAll = isClosedByAll(num);
             return (
@@ -335,6 +317,7 @@ function CricketGameContent() {
               </div>
             );
           })}
+          </div>
         </div>
       </div>
 
