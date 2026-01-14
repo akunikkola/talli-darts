@@ -30,6 +30,8 @@ const PLAYER_COLORS = [
   { bg: "bg-[#f5a623]", text: "text-[#f5a623]", mark: "#f5a623" },
   { bg: "bg-[#4ade80]", text: "text-[#4ade80]", mark: "#4ade80" },
   { bg: "bg-[#3b82f6]", text: "text-[#3b82f6]", mark: "#3b82f6" },
+  { bg: "bg-[#a855f7]", text: "text-[#a855f7]", mark: "#a855f7" },
+  { bg: "bg-[#ec4899]", text: "text-[#ec4899]", mark: "#ec4899" },
 ];
 
 function CricketGameContent() {
@@ -173,12 +175,18 @@ function CricketGameContent() {
   };
 
   // Render mark indicator based on hit count
-  const renderMark = (marks: number, color: string, isClosed: boolean) => {
+  const renderMark = (marks: number, color: string, isClosed: boolean, compact: boolean = false) => {
+    const containerClass = compact
+      ? "w-10 h-8 flex items-center justify-center"
+      : "w-14 h-10 flex items-center justify-center";
+    const svgClass = compact ? "w-7 h-5" : "w-9 h-7";
+    const pillClass = compact ? "w-6 h-1" : "w-10 h-1";
+
     // If closed by all, show muted
     if (isClosed && marks < 3) {
       return (
-        <div className="w-14 h-10 flex items-center justify-center">
-          <div className="w-10 h-1 rounded-full bg-[#444]" />
+        <div className={containerClass}>
+          <div className={`${pillClass} rounded-full bg-[#444]`} />
         </div>
       );
     }
@@ -186,8 +194,8 @@ function CricketGameContent() {
     // 0 hits - empty pill
     if (marks === 0) {
       return (
-        <div className="w-14 h-10 flex items-center justify-center">
-          <div className="w-10 h-1 rounded-full bg-[#444]" />
+        <div className={containerClass}>
+          <div className={`${pillClass} rounded-full bg-[#444]`} />
         </div>
       );
     }
@@ -195,8 +203,8 @@ function CricketGameContent() {
     // 1 hit - single slash
     if (marks === 1) {
       return (
-        <div className="w-14 h-10 flex items-center justify-center">
-          <svg viewBox="0 0 40 30" className="w-9 h-7">
+        <div className={containerClass}>
+          <svg viewBox="0 0 40 30" className={svgClass}>
             <line x1="10" y1="24" x2="30" y2="6" stroke={color} strokeWidth="4" strokeLinecap="round" />
           </svg>
         </div>
@@ -206,8 +214,8 @@ function CricketGameContent() {
     // 2 hits - X cross
     if (marks === 2) {
       return (
-        <div className="w-14 h-10 flex items-center justify-center">
-          <svg viewBox="0 0 40 30" className="w-9 h-7">
+        <div className={containerClass}>
+          <svg viewBox="0 0 40 30" className={svgClass}>
             <line x1="10" y1="24" x2="30" y2="6" stroke={color} strokeWidth="4" strokeLinecap="round" />
             <line x1="10" y1="6" x2="30" y2="24" stroke={color} strokeWidth="4" strokeLinecap="round" />
           </svg>
@@ -217,8 +225,8 @@ function CricketGameContent() {
 
     // 3+ hits - X with circle (closed)
     return (
-      <div className="w-14 h-10 flex items-center justify-center">
-        <svg viewBox="0 0 40 30" className="w-9 h-7">
+      <div className={containerClass}>
+        <svg viewBox="0 0 40 30" className={svgClass}>
           <circle cx="20" cy="15" r="11" fill="none" stroke={color} strokeWidth="2.5" />
           <line x1="12" y1="21" x2="28" y2="9" stroke={color} strokeWidth="3" strokeLinecap="round" />
           <line x1="12" y1="9" x2="28" y2="21" stroke={color} strokeWidth="3" strokeLinecap="round" />
@@ -235,8 +243,8 @@ function CricketGameContent() {
     );
   }
 
-  const player1 = cricketPlayers[0];
-  const player2 = cricketPlayers[1];
+  const playerCount = cricketPlayers.length;
+  const isCompact = playerCount > 2;
 
   return (
     <div className="h-dvh bg-[#1a1a1a] flex flex-col select-none overflow-hidden">
@@ -267,65 +275,63 @@ function CricketGameContent() {
 
       {/* Player Score Cards */}
       <div className="px-4 mb-3">
-        <div className="flex rounded-2xl overflow-hidden">
-          {/* Player 1 */}
-          <div className={`flex-1 p-3 ${PLAYER_COLORS[0].bg}`}>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-white font-medium truncate text-sm">{player1.player.name}</span>
+        <div className={`flex rounded-2xl overflow-hidden ${isCompact ? "overflow-x-auto" : ""}`}>
+          {cricketPlayers.map((p, index) => (
+            <div
+              key={p.player.id}
+              className={`${isCompact ? "min-w-[120px]" : "flex-1"} p-3 ${PLAYER_COLORS[index % PLAYER_COLORS.length].bg}`}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-white font-medium truncate text-sm">{p.player.name}</span>
+              </div>
+              <div className="flex items-start justify-between">
+                <span className={`${isCompact ? "text-3xl" : "text-5xl"} font-bold text-white`}>{p.points}</span>
+              </div>
             </div>
-            <div className="flex items-start justify-between">
-              <span className="text-5xl font-bold text-white">{player1.points}</span>
-              <span className="bg-black/30 text-white text-sm font-bold w-7 h-7 rounded-lg flex items-center justify-center">
-                {player1.roundsWon}
-              </span>
-            </div>
-          </div>
-          {/* Player 2 */}
-          <div className={`flex-1 p-3 ${PLAYER_COLORS[1].bg}`}>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-white font-medium truncate text-sm">{player2.player.name}</span>
-            </div>
-            <div className="flex items-start justify-between">
-              <span className="text-5xl font-bold text-white">{player2.points}</span>
-              <span className="bg-black/30 text-white text-sm font-bold w-7 h-7 rounded-lg flex items-center justify-center">
-                {player2.roundsWon}
-              </span>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
 
       {/* Cricket Grid */}
-      <div className="flex-1 px-4">
+      <div className="flex-1 px-4 overflow-hidden">
         <div className="bg-[#2a2a2a] rounded-2xl p-3 h-full flex flex-col justify-around">
+          {/* Player name headers */}
+          <div className="flex items-center mb-2">
+            {cricketPlayers.map((p, index) => (
+              <div key={`header-${p.player.id}`} className="flex-1 text-center">
+                <span
+                  className="text-xs font-medium truncate"
+                  style={{ color: PLAYER_COLORS[index % PLAYER_COLORS.length].mark }}
+                >
+                  {p.player.name.split(" ")[0]}
+                </span>
+              </div>
+            ))}
+            <div className="w-10" /> {/* Spacer for number column */}
+          </div>
+
           {CRICKET_NUMBERS.map((num) => {
             const closedByAll = isClosedByAll(num);
             return (
               <div key={num} className="flex items-center">
-                {/* Player 1 mark - tappable */}
-                <button
-                  onClick={() => handleMarkTap(0, num)}
-                  disabled={gameOver || closedByAll}
-                  className="flex-1 flex justify-center items-center py-1 active:scale-95 transition-transform disabled:active:scale-100"
-                >
-                  {renderMark(player1.marks[num], player1.color, closedByAll)}
-                </button>
+                {/* Player marks - all tappable */}
+                {cricketPlayers.map((p, index) => (
+                  <button
+                    key={`${p.player.id}-${num}`}
+                    onClick={() => handleMarkTap(index, num)}
+                    disabled={gameOver || closedByAll}
+                    className="flex-1 flex justify-center items-center py-1 active:scale-95 transition-transform disabled:active:scale-100"
+                  >
+                    {renderMark(p.marks[num], p.color, closedByAll, isCompact)}
+                  </button>
+                ))}
 
-                {/* Number in center */}
-                <div className="w-14 text-center">
-                  <span className={`text-2xl font-bold ${closedByAll ? "text-[#444]" : "text-white"}`}>
+                {/* Number on right */}
+                <div className="w-10 text-center">
+                  <span className={`text-xl font-bold ${closedByAll ? "text-[#444]" : "text-white"}`}>
                     {num === 25 ? "B" : num}
                   </span>
                 </div>
-
-                {/* Player 2 mark - tappable */}
-                <button
-                  onClick={() => handleMarkTap(1, num)}
-                  disabled={gameOver || closedByAll}
-                  className="flex-1 flex justify-center items-center py-1 active:scale-95 transition-transform disabled:active:scale-100"
-                >
-                  {renderMark(player2.marks[num], player2.color, closedByAll)}
-                </button>
               </div>
             );
           })}
@@ -333,9 +339,9 @@ function CricketGameContent() {
       </div>
 
       {/* Bottom hint */}
-      <div className="px-4 py-4">
+      <div className="px-4 py-3">
         <p className="text-slate-500 text-xs text-center">
-          Tap marks to score • Double tap for doubles • Triple tap for triples
+          Tap marks to score
         </p>
       </div>
 
