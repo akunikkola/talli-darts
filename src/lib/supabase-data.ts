@@ -68,6 +68,8 @@ interface DbMatch {
   player1_double_hits: number | null;
   player2_double_hits: number | null;
   started_at: string | null;
+  player1_first9_avg: number | null;
+  player2_first9_avg: number | null;
 }
 
 // Player type that matches our app's interface
@@ -139,6 +141,8 @@ export interface MatchResult {
   player1DoubleHits?: number; // Double hits by player 1
   player2DoubleHits?: number; // Double hits by player 2
   startedAt?: string; // When the match started
+  player1First9Avg?: number; // First 9 darts average for player 1
+  player2First9Avg?: number; // First 9 darts average for player 2
 }
 
 // Convert DB player to app player
@@ -243,6 +247,8 @@ function dbToMatch(db: DbMatch): MatchResult {
     player1DoubleHits: db.player1_double_hits || undefined,
     player2DoubleHits: db.player2_double_hits || undefined,
     startedAt: db.started_at || undefined,
+    player1First9Avg: db.player1_first9_avg || undefined,
+    player2First9Avg: db.player2_first9_avg || undefined,
   };
 }
 
@@ -288,6 +294,8 @@ function matchToDb(match: Partial<MatchResult> & { id: string }): Partial<DbMatc
     player1_double_hits: match.player1DoubleHits || null,
     player2_double_hits: match.player2DoubleHits || null,
     started_at: match.startedAt || null,
+    player1_first9_avg: match.player1First9Avg || null,
+    player2_first9_avg: match.player2First9Avg || null,
   };
 }
 

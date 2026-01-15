@@ -308,6 +308,16 @@ export default function MatchDetail() {
             format="decimal"
           />
 
+          {/* First 9 Average - only show if data exists */}
+          {(match.player1First9Avg || match.player2First9Avg) && (
+            <StatBar
+              label="First 9 Avg"
+              value1={match.player1First9Avg || 0}
+              value2={match.player2First9Avg || 0}
+              format="decimal"
+            />
+          )}
+
           <StatBar
             label="100+"
             value1={match.player1HundredPlus || 0}

@@ -22,6 +22,10 @@ interface GamePlayer {
   hundredPlus: number;
   doubleAttempts: number;
   doubleHits: number;
+  // First 9 darts tracking
+  legFirst9Total: number; // Running total of first 9 darts in current leg
+  legFirst9Visits: number; // Number of visits counted in current leg's first 9 (max 3)
+  allFirst9Totals: number[]; // Array of first 9 totals from each completed leg
 }
 
 // Check if a score is "on a double" (can finish with one dart)
@@ -161,6 +165,9 @@ function GameContent() {
         hundredPlus: 0,
         doubleAttempts: 0,
         doubleHits: 0,
+        legFirst9Total: 0,
+        legFirst9Visits: 0,
+        allFirst9Totals: [],
       };
     }).filter(Boolean) as GamePlayer[];
 
@@ -230,6 +237,16 @@ function GameContent() {
     if (player.throws.length === 0) return "0.00";
     const total = player.throws.reduce((sum, t) => sum + t, 0);
     return (total / player.throws.length).toFixed(2);
+  };
+
+  // Calculate first 9 darts average (3 visits per leg, averaged across all legs)
+  const getFirst9Average = (player: GamePlayer) => {
+    // Include current leg's first 9 if match just ended (allFirst9Totals updated in confirmLegWin)
+    const totals = player.allFirst9Totals;
+    if (totals.length === 0) return 0;
+    const sum = totals.reduce((a, b) => a + b, 0);
+    // Average per leg, then divide by 3 visits to get per-visit average
+    return sum / totals.length / 3;
   };
 
   const getDartsThrown = (player: GamePlayer) => player.throws.length * 3;
@@ -374,6 +391,8 @@ function GameContent() {
       player1DoubleHits: game.players[0].doubleHits,
       player2DoubleHits: game.players[1].doubleHits,
       startedAt: game.startedAt,
+      player1First9Avg: getFirst9Average(game.players[0]),
+      player2First9Avg: getFirst9Average(game.players[1]),
     });
 
     // Store ELO changes for display in winner popup
@@ -430,6 +449,8 @@ function GameContent() {
         player1DoubleHits: game.players[0].doubleHits,
         player2DoubleHits: game.players[1].doubleHits,
         startedAt: game.startedAt,
+        player1First9Avg: getFirst9Average(game.players[0]),
+        player2First9Avg: getFirst9Average(game.players[1]),
       });
     } else {
       // Multi-player match (3+ players) - store all player names
@@ -472,6 +493,8 @@ function GameContent() {
         player1DoubleHits: winner.doubleHits,
         player2DoubleHits: 0,
         startedAt: game.startedAt,
+        player1First9Avg: getFirst9Average(winner),
+        player2First9Avg: 0,
       });
     }
 
@@ -501,15 +524,16 @@ function GameContent() {
     const loserIndex = winnerIndex === 0 ? 1 : 0;
 
     if (newLegsWon >= legsToWin) {
-      // Match won!
+      // Match won! Save first 9 totals for all players
       setGame((prev) => {
         if (!prev) return null;
-        const newPlayers = [...prev.players];
-        newPlayers[winnerIndex] = {
-          ...newPlayers[winnerIndex],
-          remaining: 0,
-          legsWon: newLegsWon,
-        };
+        const newPlayers = prev.players.map((p, i) => ({
+          ...p,
+          remaining: i === winnerIndex ? 0 : p.remaining,
+          legsWon: i === winnerIndex ? newLegsWon : p.legsWon,
+          // Save current leg's first 9 to the totals array
+          allFirst9Totals: [...p.allFirst9Totals, p.legFirst9Total],
+        }));
         return {
           ...prev,
           players: newPlayers,
@@ -543,6 +567,10 @@ function GameContent() {
           throws: [],
           lastScore: null,
           legsWon: i === winnerIndex ? newLegsWon : p.legsWon,
+          // Save current leg's first 9 and reset for new leg
+          allFirst9Totals: [...p.allFirst9Totals, p.legFirst9Total],
+          legFirst9Total: 0,
+          legFirst9Visits: 0,
         }));
 
         return {
@@ -634,6 +662,8 @@ function GameContent() {
         if (!prev) return null;
         const newPlayers = [...prev.players];
         const currentP = newPlayers[prev.currentPlayerIndex];
+        // Track first 9 darts (first 3 visits per leg)
+        const isFirst9 = currentP.legFirst9Visits < 3;
         newPlayers[prev.currentPlayerIndex] = {
           ...currentP,
           remaining: 0,
@@ -646,6 +676,8 @@ function GameContent() {
           hundredPlus: currentP.hundredPlus + (scoreValue >= 100 ? 1 : 0),
           doubleAttempts: currentP.doubleAttempts + (doubleAttempts || 0),
           doubleHits: currentP.doubleHits + (doubleHits || 0),
+          legFirst9Total: isFirst9 ? currentP.legFirst9Total + scoreValue : currentP.legFirst9Total,
+          legFirst9Visits: isFirst9 ? currentP.legFirst9Visits + 1 : currentP.legFirst9Visits,
         };
         return {
           ...prev,
@@ -662,6 +694,8 @@ function GameContent() {
         if (!prev) return null;
         const newPlayers = [...prev.players];
         const currentP = newPlayers[prev.currentPlayerIndex];
+        // Track first 9 darts (first 3 visits per leg)
+        const isFirst9 = currentP.legFirst9Visits < 3;
         newPlayers[prev.currentPlayerIndex] = {
           ...currentP,
           remaining: newRemaining,
@@ -674,6 +708,8 @@ function GameContent() {
           hundredPlus: currentP.hundredPlus + (scoreValue >= 100 ? 1 : 0),
           doubleAttempts: currentP.doubleAttempts + (doubleAttempts || 0),
           doubleHits: currentP.doubleHits + (doubleHits || 0),
+          legFirst9Total: isFirst9 ? currentP.legFirst9Total + scoreValue : currentP.legFirst9Total,
+          legFirst9Visits: isFirst9 ? currentP.legFirst9Visits + 1 : currentP.legFirst9Visits,
         };
 
         return {
