@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useRef, useCallback } from "react";
+import { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import { useData } from "@/context/DataContext";
 import type { Player } from "@/lib/supabase-data";
 import PlayerAvatar from "@/components/PlayerAvatar";
@@ -34,11 +34,21 @@ export default function Home() {
   const [matchFilter, setMatchFilter] = useState<MatchFilterType>("all");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
+  const [minTimeElapsed, setMinTimeElapsed] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const touchStartY = useRef(0);
   const isPulling = useRef(false);
 
   const PULL_THRESHOLD = 80;
+  const MIN_LOADING_TIME = 1200; // 1.2 seconds minimum loading screen
+
+  // Ensure loading screen shows for at least MIN_LOADING_TIME
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMinTimeElapsed(true);
+    }, MIN_LOADING_TIME);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleRefresh = useCallback(async () => {
     if (isRefreshing) return;
@@ -177,7 +187,7 @@ export default function Home() {
       .slice(0, 3);
   }, [matches]);
 
-  if (loading) {
+  if (loading || !minTimeElapsed) {
     return <LoadingScreen />;
   }
 
