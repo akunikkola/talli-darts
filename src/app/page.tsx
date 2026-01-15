@@ -5,6 +5,7 @@ import { useMemo, useState, useRef, useCallback } from "react";
 import { useData } from "@/context/DataContext";
 import type { Player } from "@/lib/supabase-data";
 import PlayerAvatar from "@/components/PlayerAvatar";
+import LoadingScreen from "@/components/LoadingScreen";
 
 type RankingType = "overall" | "301" | "501";
 type MatchFilterType = "all" | "ranked" | "practice";
@@ -177,11 +178,7 @@ export default function Home() {
   }, [matches]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-[#1a1a1a] flex items-center justify-center">
-        <p className="text-white">Loading...</p>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   return (
