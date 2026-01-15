@@ -290,11 +290,11 @@ export default function PlayerProfile({ params }: { params: Promise<{ id: string
           <div className="grid grid-cols-2 gap-4">
             <div className="flex justify-between items-center">
               <span className="text-slate-400 text-sm">301 ELO</span>
-              <span className="text-white font-semibold">{player.elo301.toFixed(0)} <span className="text-slate-500 text-xs">#{ranking.elo301}</span></span>
+              <span className="text-white font-semibold">{player.elo301.toFixed(2)} <span className="text-slate-500 text-xs">#{ranking.elo301}</span></span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-slate-400 text-sm">501 ELO</span>
-              <span className="text-white font-semibold">{player.elo501.toFixed(0)} <span className="text-slate-500 text-xs">#{ranking.elo501}</span></span>
+              <span className="text-white font-semibold">{player.elo501.toFixed(2)} <span className="text-slate-500 text-xs">#{ranking.elo501}</span></span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-slate-400 text-sm">180s</span>

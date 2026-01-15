@@ -20,6 +20,16 @@ interface GamePlayer {
   sixtyPlus: number;
   eightyPlus: number;
   hundredPlus: number;
+  doubleAttempts: number;
+  doubleHits: number;
+}
+
+// Check if a score is "on a double" (can finish with one dart)
+function isOnDouble(remaining: number): boolean {
+  // Even numbers 2-40 (D1-D20) or 50 (Bull)
+  if (remaining === 50) return true;
+  if (remaining >= 2 && remaining <= 40 && remaining % 2 === 0) return true;
+  return false;
 }
 
 type DartMultiplier = "single" | "double" | "treble" | "bull" | "outer";
@@ -92,6 +102,13 @@ function GameContent() {
   const [editThrowValue, setEditThrowValue] = useState("");
   const [showModeSelector, setShowModeSelector] = useState(false);
   const [showMatchStats, setShowMatchStats] = useState(false);
+  // For tracking double attempts in visit mode
+  const [pendingDoubleAttempts, setPendingDoubleAttempts] = useState<{
+    playerIndex: number;
+    wasCheckout: boolean;
+    score: number;
+    previousRemaining: number;
+  } | null>(null);
 
   // Ref for horizontal scoreboard scrolling (3+ players)
   const scoreboardRef = useRef<HTMLDivElement>(null);
@@ -140,6 +157,8 @@ function GameContent() {
         sixtyPlus: 0,
         eightyPlus: 0,
         hundredPlus: 0,
+        doubleAttempts: 0,
+        doubleHits: 0,
       };
     }).filter(Boolean) as GamePlayer[];
 
@@ -247,15 +266,16 @@ function GameContent() {
     // Calculate game-specific ELO changes (301 or 501)
     const gameEloResult = calculateMatchElo(winner.elo, loser.elo, true);
 
-    // Calculate overall ELO changes independently using overall ELO values
-    const overallEloResult = calculateMatchElo(winnerStored.elo, loserStored.elo, true);
-
-    const winnerEloChange = overallEloResult.changeA;
-    const loserEloChange = overallEloResult.changeB;
+    const winnerEloChange = gameEloResult.changeA;
+    const loserEloChange = gameEloResult.changeB;
 
     // Get player checkouts from this match
     const winnerCheckout = playerCheckouts[winnerIndex] || 0;
     const loserCheckout = playerCheckouts[winnerIndex === 0 ? 1 : 0] || 0;
+
+    // Calculate new game-specific ELO
+    const newWinnerElo301 = mode === "301" ? gameEloResult.newEloA : winnerStored.elo301;
+    const newWinnerElo501 = mode === "501" ? gameEloResult.newEloA : winnerStored.elo501;
 
     // Update winner stats
     const winnerUpdates: Record<string, number> = {
@@ -264,8 +284,8 @@ function GameContent() {
       legsLost: winnerStored.legsLost + loserLegs,
       oneEighties: winnerStored.oneEighties + winner.oneEighties,
       haminas: winnerStored.haminas + winner.haminas,
-      // Overall ELO is calculated independently
-      elo: overallEloResult.newEloA,
+      // Overall ELO is the average of 301 and 501 ELOs
+      elo: (newWinnerElo301 + newWinnerElo501) / 2,
     };
 
     // Update highest checkout if this match's checkout is higher
@@ -283,6 +303,10 @@ function GameContent() {
 
     await updatePlayer(winner.id, winnerUpdates);
 
+    // Calculate new game-specific ELO for loser
+    const newLoserElo301 = mode === "301" ? gameEloResult.newEloB : loserStored.elo301;
+    const newLoserElo501 = mode === "501" ? gameEloResult.newEloB : loserStored.elo501;
+
     // Update loser stats
     const loserUpdates: Record<string, number> = {
       losses: loserStored.losses + 1,
@@ -290,8 +314,8 @@ function GameContent() {
       legsLost: loserStored.legsLost + winnerLegs,
       oneEighties: loserStored.oneEighties + loser.oneEighties,
       haminas: loserStored.haminas + loser.haminas,
-      // Overall ELO is calculated independently
-      elo: overallEloResult.newEloB,
+      // Overall ELO is the average of 301 and 501 ELOs
+      elo: (newLoserElo301 + newLoserElo501) / 2,
     };
 
     // Update highest checkout if this match's checkout is higher
@@ -342,6 +366,10 @@ function GameContent() {
       player2EightyPlus: game.players[1].eightyPlus,
       player1HundredPlus: game.players[0].hundredPlus,
       player2HundredPlus: game.players[1].hundredPlus,
+      player1DoubleAttempts: game.players[0].doubleAttempts,
+      player2DoubleAttempts: game.players[1].doubleAttempts,
+      player1DoubleHits: game.players[0].doubleHits,
+      player2DoubleHits: game.players[1].doubleHits,
     });
 
     // Store ELO changes for display in winner popup
@@ -393,6 +421,10 @@ function GameContent() {
         player2EightyPlus: game.players[1].eightyPlus,
         player1HundredPlus: game.players[0].hundredPlus,
         player2HundredPlus: game.players[1].hundredPlus,
+        player1DoubleAttempts: game.players[0].doubleAttempts,
+        player2DoubleAttempts: game.players[1].doubleAttempts,
+        player1DoubleHits: game.players[0].doubleHits,
+        player2DoubleHits: game.players[1].doubleHits,
       });
     } else {
       // Multi-player match (3+ players) - store all player names
@@ -430,6 +462,10 @@ function GameContent() {
         player2EightyPlus: 0,
         player1HundredPlus: winner.hundredPlus,
         player2HundredPlus: 0,
+        player1DoubleAttempts: winner.doubleAttempts,
+        player2DoubleAttempts: 0,
+        player1DoubleHits: winner.doubleHits,
+        player2DoubleHits: 0,
       });
     }
 
@@ -526,21 +562,48 @@ function GameContent() {
     setGame((prev) => prev ? { ...prev, pendingLegWin: null } : null);
   };
 
-  const submitScore = (scoreValue: number) => {
-    if (game.gameOver || game.pendingLegWin) return;
+  const submitScore = (scoreValue: number, doubleAttempts?: number, doubleHits?: number) => {
+    if (game.gameOver || game.pendingLegWin || pendingDoubleAttempts) return;
 
     const remaining = currentPlayer.remaining;
     const newRemaining = remaining - scoreValue;
 
+    // In visit mode (no double stats passed), check if player was on a double
+    // and we need to ask how many darts were thrown
+    if (doubleAttempts === undefined && isOnDouble(remaining) && game.inputMode === "round") {
+      // Show popup to ask how many darts were thrown
+      setPendingDoubleAttempts({
+        playerIndex: game.currentPlayerIndex,
+        wasCheckout: newRemaining === 0,
+        score: scoreValue,
+        previousRemaining: remaining,
+      });
+      return;
+    }
+
     const isBust = newRemaining < 0 || newRemaining === 1;
 
     if (isBust) {
+      // In visit mode, if player was on a double before busting, ask about double attempts
+      if (doubleAttempts === undefined && isOnDouble(remaining) && game.inputMode === "round") {
+        setPendingDoubleAttempts({
+          playerIndex: game.currentPlayerIndex,
+          wasCheckout: false, // It's a bust, so no checkout
+          score: -1, // Special value to indicate bust
+          previousRemaining: remaining,
+        });
+        return;
+      }
+
+      // Update double attempts if provided (from popup or dart-by-dart)
       setGame((prev) => {
         if (!prev) return null;
         const newPlayers = [...prev.players];
+        const currentP = newPlayers[prev.currentPlayerIndex];
         newPlayers[prev.currentPlayerIndex] = {
-          ...newPlayers[prev.currentPlayerIndex],
+          ...currentP,
           lastScore: null,
+          doubleAttempts: currentP.doubleAttempts + (doubleAttempts || 0),
         };
         return {
           ...prev,
@@ -575,6 +638,8 @@ function GameContent() {
           sixtyPlus: currentP.sixtyPlus + (scoreValue >= 60 ? 1 : 0),
           eightyPlus: currentP.eightyPlus + (scoreValue >= 80 ? 1 : 0),
           hundredPlus: currentP.hundredPlus + (scoreValue >= 100 ? 1 : 0),
+          doubleAttempts: currentP.doubleAttempts + (doubleAttempts || 0),
+          doubleHits: currentP.doubleHits + (doubleHits || 0),
         };
         return {
           ...prev,
@@ -601,6 +666,8 @@ function GameContent() {
           sixtyPlus: currentP.sixtyPlus + (scoreValue >= 60 ? 1 : 0),
           eightyPlus: currentP.eightyPlus + (scoreValue >= 80 ? 1 : 0),
           hundredPlus: currentP.hundredPlus + (scoreValue >= 100 ? 1 : 0),
+          doubleAttempts: currentP.doubleAttempts + (doubleAttempts || 0),
+          doubleHits: currentP.doubleHits + (doubleHits || 0),
         };
 
         return {
@@ -611,6 +678,51 @@ function GameContent() {
         };
       });
     }
+  };
+
+  // Handle double attempts popup confirmation (visit mode)
+  const confirmDoubleAttempts = (dartsThrown: number) => {
+    if (!pendingDoubleAttempts || !game) return;
+
+    const { wasCheckout, score } = pendingDoubleAttempts;
+    const attempts = dartsThrown;
+    const hits = wasCheckout ? 1 : 0;
+
+    // Clear the popup first
+    setPendingDoubleAttempts(null);
+
+    // Handle bust case (score === -1)
+    if (score === -1) {
+      // Bust: update double attempts, record 0 throw, and move to next player
+      setLastAction({
+        playerIndex: game.currentPlayerIndex,
+        score: 0,
+        remaining: currentPlayer.remaining,
+        lastScore: currentPlayer.lastScore,
+      });
+
+      setGame((prev) => {
+        if (!prev) return null;
+        const newPlayers = [...prev.players];
+        const currentP = newPlayers[prev.currentPlayerIndex];
+        newPlayers[prev.currentPlayerIndex] = {
+          ...currentP,
+          throws: [...currentP.throws, 0],
+          lastScore: 0,
+          doubleAttempts: currentP.doubleAttempts + attempts,
+        };
+        return {
+          ...prev,
+          players: newPlayers,
+          currentPlayerIndex: (prev.currentPlayerIndex + 1) % prev.players.length,
+          currentScore: "",
+        };
+      });
+      return;
+    }
+
+    // Now submit the score with double stats
+    submitScore(score, attempts, hits);
   };
 
   const handleNumberPad = (key: string) => {
@@ -681,8 +793,19 @@ function GameContent() {
     submitScore(score);
   };
 
-  const handleBust = () => {
-    if (game?.gameOver || game?.pendingLegWin) return;
+  const handleBust = (doubleAttempts?: number) => {
+    if (game?.gameOver || game?.pendingLegWin || pendingDoubleAttempts) return;
+
+    // In visit mode, if player is on a double, ask about double attempts
+    if (doubleAttempts === undefined && isOnDouble(currentPlayer.remaining) && game.inputMode === "round") {
+      setPendingDoubleAttempts({
+        playerIndex: game.currentPlayerIndex,
+        wasCheckout: false,
+        score: -1, // Special value for bust
+        previousRemaining: currentPlayer.remaining,
+      });
+      return;
+    }
 
     // Bust: Record 0 score, move to next player without changing remaining
     setLastAction({
@@ -695,10 +818,12 @@ function GameContent() {
     setGame((prev) => {
       if (!prev) return null;
       const newPlayers = [...prev.players];
+      const currentP = newPlayers[prev.currentPlayerIndex];
       newPlayers[prev.currentPlayerIndex] = {
-        ...newPlayers[prev.currentPlayerIndex],
-        throws: [...newPlayers[prev.currentPlayerIndex].throws, 0],
+        ...currentP,
+        throws: [...currentP.throws, 0],
         lastScore: 0,
+        doubleAttempts: currentP.doubleAttempts + (doubleAttempts || 0),
       };
       return {
         ...prev,
@@ -883,8 +1008,25 @@ function GameContent() {
       }
     }
 
+    // Calculate double attempts from the darts thrown
+    let doubleAttempts = 0;
+    let doubleHits = 0;
+    let remainingBeforeDart = currentPlayer.remaining;
+
+    for (let i = 0; i < game.currentDarts.length; i++) {
+      const dart = game.currentDarts[i];
+      if (isOnDouble(remainingBeforeDart)) {
+        doubleAttempts++;
+        // Check if this dart finished the leg
+        if (remainingBeforeDart - dart.score === 0) {
+          doubleHits++;
+        }
+      }
+      remainingBeforeDart -= dart.score;
+    }
+
     // Submit the total score using existing logic
-    submitScore(total);
+    submitScore(total, doubleAttempts, doubleHits);
 
     // Reset darts for next turn
     setGame((prev) => prev ? {
@@ -896,6 +1038,31 @@ function GameContent() {
 
   const handleDartBust = () => {
     if (game.gameOver || game.pendingLegWin) return;
+
+    // Calculate double attempts from the darts thrown (all misses since we busted)
+    let doubleAttempts = 0;
+    let remainingBeforeDart = currentPlayer.remaining;
+
+    for (const dart of game.currentDarts) {
+      if (isOnDouble(remainingBeforeDart)) {
+        doubleAttempts++;
+      }
+      remainingBeforeDart -= dart.score;
+    }
+
+    // Update player's double attempts (no hits since we busted)
+    if (doubleAttempts > 0) {
+      setGame((prev) => {
+        if (!prev) return null;
+        const newPlayers = [...prev.players];
+        const currentP = newPlayers[prev.currentPlayerIndex];
+        newPlayers[prev.currentPlayerIndex] = {
+          ...currentP,
+          doubleAttempts: currentP.doubleAttempts + doubleAttempts,
+        };
+        return { ...prev, players: newPlayers };
+      });
+    }
 
     // Record bust (0 score) and move to next player
     handleBust();
@@ -910,6 +1077,30 @@ function GameContent() {
 
   return (
     <div className="h-dvh flex flex-col bg-[#1a1a1a] select-none overflow-hidden">
+      {/* Double Attempts Popup (visit mode) */}
+      {pendingDoubleAttempts && (
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
+          <div className="text-center p-6 w-full max-w-xs">
+            <h2 className="text-xl font-bold text-white mb-2">Darts at double?</h2>
+            <p className="text-slate-400 text-sm mb-4">
+              {pendingDoubleAttempts.wasCheckout ? "Nice checkout! " : ""}
+              How many darts did you throw at a double?
+            </p>
+            <div className="grid grid-cols-3 gap-3">
+              {[1, 2, 3].map((num) => (
+                <button
+                  key={num}
+                  onClick={() => confirmDoubleAttempts(num)}
+                  className="py-4 bg-[#2a2a2a] hover:bg-[#3a3a3a] rounded-xl text-2xl font-bold text-white"
+                >
+                  {num}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Leg Win Confirmation */}
       {game.pendingLegWin && (
         <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
@@ -989,7 +1180,7 @@ function GameContent() {
                     <p className={`font-semibold text-sm ${player1Won ? "text-white" : "text-slate-400"}`}>
                       {game.players[0].name}
                     </p>
-                    <p className="text-slate-500 text-xs">{game.players[0].elo.toFixed(0)} ELO</p>
+                    <p className="text-slate-500 text-xs">{game.players[0].elo.toFixed(2)} ELO</p>
                     {game.isRanked && game.eloChanges && (
                       <p className={`text-xs font-semibold ${game.eloChanges.player1 >= 0 ? "text-[#4ade80]" : "text-red-400"}`}>
                         {game.eloChanges.player1 >= 0 ? "+" : ""}{game.eloChanges.player1.toFixed(2)}
@@ -1029,7 +1220,7 @@ function GameContent() {
                     <p className={`font-semibold text-sm ${!player1Won ? "text-white" : "text-slate-400"}`}>
                       {game.players[1].name}
                     </p>
-                    <p className="text-slate-500 text-xs">{game.players[1].elo.toFixed(0)} ELO</p>
+                    <p className="text-slate-500 text-xs">{game.players[1].elo.toFixed(2)} ELO</p>
                     {game.isRanked && game.eloChanges && (
                       <p className={`text-xs font-semibold ${game.eloChanges.player2 >= 0 ? "text-[#4ade80]" : "text-red-400"}`}>
                         {game.eloChanges.player2 >= 0 ? "+" : ""}{game.eloChanges.player2.toFixed(2)}
@@ -1093,6 +1284,29 @@ function GameContent() {
                       <div className="bg-[#f5a623]" style={{ width: `${(game.players[1].sixtyPlus / Math.max(1, game.players[0].sixtyPlus + game.players[1].sixtyPlus) * 100)}%` }} />
                     </div>
                   </div>
+
+                  {/* Doubles % */}
+                  {(game.players[0].doubleAttempts > 0 || game.players[1].doubleAttempts > 0) && (
+                    <div>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-white font-semibold">
+                          {game.players[0].doubleAttempts > 0
+                            ? `${Math.round(game.players[0].doubleHits / game.players[0].doubleAttempts * 100)}%`
+                            : '-'}
+                        </span>
+                        <span className="text-slate-400 text-xs">Doubles</span>
+                        <span className="text-white font-semibold">
+                          {game.players[1].doubleAttempts > 0
+                            ? `${Math.round(game.players[1].doubleHits / game.players[1].doubleAttempts * 100)}%`
+                            : '-'}
+                        </span>
+                      </div>
+                      <div className="h-2 bg-[#333] rounded-full overflow-hidden flex">
+                        <div className="bg-[#e85d3b]" style={{ width: `${(game.players[0].doubleAttempts > 0 ? game.players[0].doubleHits / game.players[0].doubleAttempts : 0) / Math.max(0.01, (game.players[0].doubleAttempts > 0 ? game.players[0].doubleHits / game.players[0].doubleAttempts : 0) + (game.players[1].doubleAttempts > 0 ? game.players[1].doubleHits / game.players[1].doubleAttempts : 0)) * 100}%` }} />
+                        <div className="bg-[#f5a623]" style={{ width: `${(game.players[1].doubleAttempts > 0 ? game.players[1].doubleHits / game.players[1].doubleAttempts : 0) / Math.max(0.01, (game.players[0].doubleAttempts > 0 ? game.players[0].doubleHits / game.players[0].doubleAttempts : 0) + (game.players[1].doubleAttempts > 0 ? game.players[1].doubleHits / game.players[1].doubleAttempts : 0)) * 100}%` }} />
+                      </div>
+                    </div>
+                  )}
 
                   {/* Darts Thrown */}
                   <div>

@@ -211,7 +211,7 @@ export default function MatchDetail() {
                 {match.player1Name}
               </p>
               <p className="text-slate-500 text-xs">
-                {match.player1EloStart.toFixed(0)} ELO
+                {match.player1EloStart.toFixed(2)} ELO
               </p>
               {match.isRanked && (
                 <p
@@ -264,7 +264,7 @@ export default function MatchDetail() {
                 {match.player2Name}
               </p>
               <p className="text-slate-500 text-xs">
-                {match.player2EloStart.toFixed(0)} ELO
+                {match.player2EloStart.toFixed(2)} ELO
               </p>
               {match.isRanked && (
                 <p
@@ -311,6 +311,54 @@ export default function MatchDetail() {
             value1={match.player1SixtyPlus || 0}
             value2={match.player2SixtyPlus || 0}
           />
+
+          {/* Doubles % - custom display since we need percentages */}
+          {((match.player1DoubleAttempts && match.player1DoubleAttempts > 0) ||
+            (match.player2DoubleAttempts && match.player2DoubleAttempts > 0)) && (
+            <div className="mb-4">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-white font-semibold">
+                  {match.player1DoubleAttempts && match.player1DoubleAttempts > 0
+                    ? `${Math.round((match.player1DoubleHits || 0) / match.player1DoubleAttempts * 100)}%`
+                    : '-'}
+                </span>
+                <span className="text-slate-400 text-sm">Doubles</span>
+                <span className="text-white font-semibold">
+                  {match.player2DoubleAttempts && match.player2DoubleAttempts > 0
+                    ? `${Math.round((match.player2DoubleHits || 0) / match.player2DoubleAttempts * 100)}%`
+                    : '-'}
+                </span>
+              </div>
+              <div className="flex h-2 rounded-full overflow-hidden bg-[#333]">
+                <div
+                  className="bg-[#e85d3b] transition-all"
+                  style={{
+                    width: `${(() => {
+                      const p1Pct = match.player1DoubleAttempts && match.player1DoubleAttempts > 0
+                        ? (match.player1DoubleHits || 0) / match.player1DoubleAttempts : 0;
+                      const p2Pct = match.player2DoubleAttempts && match.player2DoubleAttempts > 0
+                        ? (match.player2DoubleHits || 0) / match.player2DoubleAttempts : 0;
+                      const total = p1Pct + p2Pct;
+                      return total > 0 ? (p1Pct / total * 100) : 50;
+                    })()}%`
+                  }}
+                />
+                <div
+                  className="bg-[#f5a623] transition-all"
+                  style={{
+                    width: `${(() => {
+                      const p1Pct = match.player1DoubleAttempts && match.player1DoubleAttempts > 0
+                        ? (match.player1DoubleHits || 0) / match.player1DoubleAttempts : 0;
+                      const p2Pct = match.player2DoubleAttempts && match.player2DoubleAttempts > 0
+                        ? (match.player2DoubleHits || 0) / match.player2DoubleAttempts : 0;
+                      const total = p1Pct + p2Pct;
+                      return total > 0 ? (p2Pct / total * 100) : 50;
+                    })()}%`
+                  }}
+                />
+              </div>
+            </div>
+          )}
 
           {(match.player1Darts || match.player2Darts) && (
             <StatBar

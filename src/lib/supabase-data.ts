@@ -63,6 +63,10 @@ interface DbMatch {
   player2_eighty_plus: number | null;
   player1_hundred_plus: number | null;
   player2_hundred_plus: number | null;
+  player1_double_attempts: number | null;
+  player2_double_attempts: number | null;
+  player1_double_hits: number | null;
+  player2_double_hits: number | null;
 }
 
 // Player type that matches our app's interface
@@ -129,6 +133,10 @@ export interface MatchResult {
   player2EightyPlus?: number; // 80+ visits by player 2
   player1HundredPlus?: number; // 100+ visits by player 1
   player2HundredPlus?: number; // 100+ visits by player 2
+  player1DoubleAttempts?: number; // Double attempts by player 1
+  player2DoubleAttempts?: number; // Double attempts by player 2
+  player1DoubleHits?: number; // Double hits by player 1
+  player2DoubleHits?: number; // Double hits by player 2
 }
 
 // Convert DB player to app player
@@ -228,6 +236,10 @@ function dbToMatch(db: DbMatch): MatchResult {
     player2EightyPlus: db.player2_eighty_plus || undefined,
     player1HundredPlus: db.player1_hundred_plus || undefined,
     player2HundredPlus: db.player2_hundred_plus || undefined,
+    player1DoubleAttempts: db.player1_double_attempts || undefined,
+    player2DoubleAttempts: db.player2_double_attempts || undefined,
+    player1DoubleHits: db.player1_double_hits || undefined,
+    player2DoubleHits: db.player2_double_hits || undefined,
   };
 }
 
@@ -268,6 +280,10 @@ function matchToDb(match: Partial<MatchResult> & { id: string }): Partial<DbMatc
     player2_eighty_plus: match.player2EightyPlus || null,
     player1_hundred_plus: match.player1HundredPlus || null,
     player2_hundred_plus: match.player2HundredPlus || null,
+    player1_double_attempts: match.player1DoubleAttempts || null,
+    player2_double_attempts: match.player2DoubleAttempts || null,
+    player1_double_hits: match.player1DoubleHits || null,
+    player2_double_hits: match.player2DoubleHits || null,
   };
 }
 
