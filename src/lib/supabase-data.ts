@@ -57,6 +57,12 @@ interface DbMatch {
   all_player_names: string | null;
   player1_darts: number | null;
   player2_darts: number | null;
+  player1_sixty_plus: number | null;
+  player2_sixty_plus: number | null;
+  player1_eighty_plus: number | null;
+  player2_eighty_plus: number | null;
+  player1_hundred_plus: number | null;
+  player2_hundred_plus: number | null;
 }
 
 // Player type that matches our app's interface
@@ -117,6 +123,12 @@ export interface MatchResult {
   allPlayerNames?: string; // Comma-separated names for multi-player matches
   player1Darts?: number; // Total darts thrown by player 1
   player2Darts?: number; // Total darts thrown by player 2
+  player1SixtyPlus?: number; // 60+ visits by player 1
+  player2SixtyPlus?: number; // 60+ visits by player 2
+  player1EightyPlus?: number; // 80+ visits by player 1
+  player2EightyPlus?: number; // 80+ visits by player 2
+  player1HundredPlus?: number; // 100+ visits by player 1
+  player2HundredPlus?: number; // 100+ visits by player 2
 }
 
 // Convert DB player to app player
@@ -210,6 +222,12 @@ function dbToMatch(db: DbMatch): MatchResult {
     allPlayerNames: db.all_player_names || undefined,
     player1Darts: db.player1_darts || undefined,
     player2Darts: db.player2_darts || undefined,
+    player1SixtyPlus: db.player1_sixty_plus || undefined,
+    player2SixtyPlus: db.player2_sixty_plus || undefined,
+    player1EightyPlus: db.player1_eighty_plus || undefined,
+    player2EightyPlus: db.player2_eighty_plus || undefined,
+    player1HundredPlus: db.player1_hundred_plus || undefined,
+    player2HundredPlus: db.player2_hundred_plus || undefined,
   };
 }
 
@@ -244,6 +262,12 @@ function matchToDb(match: Partial<MatchResult> & { id: string }): Partial<DbMatc
     all_player_names: match.allPlayerNames || null,
     player1_darts: match.player1Darts || null,
     player2_darts: match.player2Darts || null,
+    player1_sixty_plus: match.player1SixtyPlus || null,
+    player2_sixty_plus: match.player2SixtyPlus || null,
+    player1_eighty_plus: match.player1EightyPlus || null,
+    player2_eighty_plus: match.player2EightyPlus || null,
+    player1_hundred_plus: match.player1HundredPlus || null,
+    player2_hundred_plus: match.player2HundredPlus || null,
   };
 }
 

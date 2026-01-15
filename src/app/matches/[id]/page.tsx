@@ -295,9 +295,21 @@ export default function MatchDetail() {
           />
 
           <StatBar
-            label="180s"
-            value1={match.player1OneEighties}
-            value2={match.player2OneEighties}
+            label="100+"
+            value1={match.player1HundredPlus || 0}
+            value2={match.player2HundredPlus || 0}
+          />
+
+          <StatBar
+            label="80+"
+            value1={match.player1EightyPlus || 0}
+            value2={match.player2EightyPlus || 0}
+          />
+
+          <StatBar
+            label="60+"
+            value1={match.player1SixtyPlus || 0}
+            value2={match.player2SixtyPlus || 0}
           />
 
           {(match.player1Darts || match.player2Darts) && (

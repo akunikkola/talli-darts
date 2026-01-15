@@ -17,6 +17,9 @@ interface GamePlayer {
   lastScore: number | null;
   oneEighties: number;
   haminas: number;
+  sixtyPlus: number;
+  eightyPlus: number;
+  hundredPlus: number;
 }
 
 type DartMultiplier = "single" | "double" | "treble" | "bull" | "outer";
@@ -134,6 +137,9 @@ function GameContent() {
         lastScore: null,
         oneEighties: 0,
         haminas: 0,
+        sixtyPlus: 0,
+        eightyPlus: 0,
+        hundredPlus: 0,
       };
     }).filter(Boolean) as GamePlayer[];
 
@@ -330,6 +336,12 @@ function GameContent() {
       playerCount: 2,
       player1Darts: getDartsThrown(game.players[0]),
       player2Darts: getDartsThrown(game.players[1]),
+      player1SixtyPlus: game.players[0].sixtyPlus,
+      player2SixtyPlus: game.players[1].sixtyPlus,
+      player1EightyPlus: game.players[0].eightyPlus,
+      player2EightyPlus: game.players[1].eightyPlus,
+      player1HundredPlus: game.players[0].hundredPlus,
+      player2HundredPlus: game.players[1].hundredPlus,
     });
 
     // Store ELO changes for display in winner popup
@@ -375,6 +387,12 @@ function GameContent() {
         playerCount: 2,
         player1Darts: getDartsThrown(game.players[0]),
         player2Darts: getDartsThrown(game.players[1]),
+        player1SixtyPlus: game.players[0].sixtyPlus,
+        player2SixtyPlus: game.players[1].sixtyPlus,
+        player1EightyPlus: game.players[0].eightyPlus,
+        player2EightyPlus: game.players[1].eightyPlus,
+        player1HundredPlus: game.players[0].hundredPlus,
+        player2HundredPlus: game.players[1].hundredPlus,
       });
     } else {
       // Multi-player match (3+ players) - store all player names
@@ -406,6 +424,12 @@ function GameContent() {
         allPlayerNames: allPlayerNames,
         player1Darts: getDartsThrown(winner),
         player2Darts: 0,
+        player1SixtyPlus: winner.sixtyPlus,
+        player2SixtyPlus: 0,
+        player1EightyPlus: winner.eightyPlus,
+        player2EightyPlus: 0,
+        player1HundredPlus: winner.hundredPlus,
+        player2HundredPlus: 0,
       });
     }
 
@@ -540,13 +564,17 @@ function GameContent() {
       setGame((prev) => {
         if (!prev) return null;
         const newPlayers = [...prev.players];
+        const currentP = newPlayers[prev.currentPlayerIndex];
         newPlayers[prev.currentPlayerIndex] = {
-          ...newPlayers[prev.currentPlayerIndex],
+          ...currentP,
           remaining: 0,
-          throws: [...newPlayers[prev.currentPlayerIndex].throws, scoreValue],
+          throws: [...currentP.throws, scoreValue],
           lastScore: scoreValue,
-          oneEighties: newPlayers[prev.currentPlayerIndex].oneEighties + (scoreValue === 180 ? 1 : 0),
-          haminas: newPlayers[prev.currentPlayerIndex].haminas + (scoreValue === 26 ? 1 : 0),
+          oneEighties: currentP.oneEighties + (scoreValue === 180 ? 1 : 0),
+          haminas: currentP.haminas + (scoreValue === 26 ? 1 : 0),
+          sixtyPlus: currentP.sixtyPlus + (scoreValue >= 60 ? 1 : 0),
+          eightyPlus: currentP.eightyPlus + (scoreValue >= 80 ? 1 : 0),
+          hundredPlus: currentP.hundredPlus + (scoreValue >= 100 ? 1 : 0),
         };
         return {
           ...prev,
@@ -562,13 +590,17 @@ function GameContent() {
       setGame((prev) => {
         if (!prev) return null;
         const newPlayers = [...prev.players];
+        const currentP = newPlayers[prev.currentPlayerIndex];
         newPlayers[prev.currentPlayerIndex] = {
-          ...newPlayers[prev.currentPlayerIndex],
+          ...currentP,
           remaining: newRemaining,
-          throws: [...newPlayers[prev.currentPlayerIndex].throws, scoreValue],
+          throws: [...currentP.throws, scoreValue],
           lastScore: scoreValue,
-          oneEighties: newPlayers[prev.currentPlayerIndex].oneEighties + (scoreValue === 180 ? 1 : 0),
-          haminas: newPlayers[prev.currentPlayerIndex].haminas + (scoreValue === 26 ? 1 : 0),
+          oneEighties: currentP.oneEighties + (scoreValue === 180 ? 1 : 0),
+          haminas: currentP.haminas + (scoreValue === 26 ? 1 : 0),
+          sixtyPlus: currentP.sixtyPlus + (scoreValue >= 60 ? 1 : 0),
+          eightyPlus: currentP.eightyPlus + (scoreValue >= 80 ? 1 : 0),
+          hundredPlus: currentP.hundredPlus + (scoreValue >= 100 ? 1 : 0),
         };
 
         return {
@@ -613,6 +645,9 @@ function GameContent() {
         lastScore: lastAction.lastScore,
         oneEighties: undoPlayer.oneEighties - (lastThrow === 180 ? 1 : 0),
         haminas: undoPlayer.haminas - (lastThrow === 26 ? 1 : 0),
+        sixtyPlus: undoPlayer.sixtyPlus - (lastThrow >= 60 ? 1 : 0),
+        eightyPlus: undoPlayer.eightyPlus - (lastThrow >= 80 ? 1 : 0),
+        hundredPlus: undoPlayer.hundredPlus - (lastThrow >= 100 ? 1 : 0),
       };
 
       return {
@@ -1020,16 +1055,42 @@ function GameContent() {
                     </div>
                   </div>
 
-                  {/* 180s */}
+                  {/* 100+ visits */}
                   <div>
                     <div className="flex justify-between items-center mb-1">
-                      <span className="text-white font-semibold">{game.players[0].oneEighties}</span>
-                      <span className="text-slate-400 text-xs">180s</span>
-                      <span className="text-white font-semibold">{game.players[1].oneEighties}</span>
+                      <span className="text-white font-semibold">{game.players[0].hundredPlus}</span>
+                      <span className="text-slate-400 text-xs">100+</span>
+                      <span className="text-white font-semibold">{game.players[1].hundredPlus}</span>
                     </div>
                     <div className="h-2 bg-[#333] rounded-full overflow-hidden flex">
-                      <div className="bg-[#e85d3b]" style={{ width: `${(game.players[0].oneEighties / Math.max(1, game.players[0].oneEighties + game.players[1].oneEighties) * 100)}%` }} />
-                      <div className="bg-[#f5a623]" style={{ width: `${(game.players[1].oneEighties / Math.max(1, game.players[0].oneEighties + game.players[1].oneEighties) * 100)}%` }} />
+                      <div className="bg-[#e85d3b]" style={{ width: `${(game.players[0].hundredPlus / Math.max(1, game.players[0].hundredPlus + game.players[1].hundredPlus) * 100)}%` }} />
+                      <div className="bg-[#f5a623]" style={{ width: `${(game.players[1].hundredPlus / Math.max(1, game.players[0].hundredPlus + game.players[1].hundredPlus) * 100)}%` }} />
+                    </div>
+                  </div>
+
+                  {/* 80+ visits */}
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-white font-semibold">{game.players[0].eightyPlus}</span>
+                      <span className="text-slate-400 text-xs">80+</span>
+                      <span className="text-white font-semibold">{game.players[1].eightyPlus}</span>
+                    </div>
+                    <div className="h-2 bg-[#333] rounded-full overflow-hidden flex">
+                      <div className="bg-[#e85d3b]" style={{ width: `${(game.players[0].eightyPlus / Math.max(1, game.players[0].eightyPlus + game.players[1].eightyPlus) * 100)}%` }} />
+                      <div className="bg-[#f5a623]" style={{ width: `${(game.players[1].eightyPlus / Math.max(1, game.players[0].eightyPlus + game.players[1].eightyPlus) * 100)}%` }} />
+                    </div>
+                  </div>
+
+                  {/* 60+ visits */}
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-white font-semibold">{game.players[0].sixtyPlus}</span>
+                      <span className="text-slate-400 text-xs">60+</span>
+                      <span className="text-white font-semibold">{game.players[1].sixtyPlus}</span>
+                    </div>
+                    <div className="h-2 bg-[#333] rounded-full overflow-hidden flex">
+                      <div className="bg-[#e85d3b]" style={{ width: `${(game.players[0].sixtyPlus / Math.max(1, game.players[0].sixtyPlus + game.players[1].sixtyPlus) * 100)}%` }} />
+                      <div className="bg-[#f5a623]" style={{ width: `${(game.players[1].sixtyPlus / Math.max(1, game.players[0].sixtyPlus + game.players[1].sixtyPlus) * 100)}%` }} />
                     </div>
                   </div>
 
