@@ -1702,7 +1702,7 @@ function GameContent() {
           </button>
           {/* Bust */}
           <button
-            onClick={handleBust}
+            onClick={() => handleBust()}
             disabled={game.gameOver || !!game.pendingLegWin}
             className="flex-1 py-2 bg-[#e85d3b] hover:bg-[#d14d2b] disabled:opacity-50 text-white rounded-lg text-sm font-bold"
           >
