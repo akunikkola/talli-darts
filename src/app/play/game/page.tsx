@@ -240,9 +240,11 @@ function GameContent() {
   };
 
   // Calculate first 9 darts average (3 visits per leg, averaged across all legs)
-  const getFirst9Average = (player: GamePlayer) => {
-    // Include current leg's first 9 if match just ended (allFirst9Totals updated in confirmLegWin)
-    const totals = player.allFirst9Totals;
+  // includeCurrentLeg should be true when saving at match end (state update is async)
+  const getFirst9Average = (player: GamePlayer, includeCurrentLeg: boolean = false) => {
+    const totals = includeCurrentLeg
+      ? [...player.allFirst9Totals, player.legFirst9Total]
+      : player.allFirst9Totals;
     if (totals.length === 0) return 0;
     const sum = totals.reduce((a, b) => a + b, 0);
     // Average per leg, then divide by 3 visits to get per-visit average
@@ -391,8 +393,8 @@ function GameContent() {
       player1DoubleHits: game.players[0].doubleHits,
       player2DoubleHits: game.players[1].doubleHits,
       startedAt: game.startedAt,
-      player1First9Avg: getFirst9Average(game.players[0]),
-      player2First9Avg: getFirst9Average(game.players[1]),
+      player1First9Avg: getFirst9Average(game.players[0], true),
+      player2First9Avg: getFirst9Average(game.players[1], true),
     });
 
     // Store ELO changes for display in winner popup
@@ -493,7 +495,7 @@ function GameContent() {
         player1DoubleHits: winner.doubleHits,
         player2DoubleHits: 0,
         startedAt: game.startedAt,
-        player1First9Avg: getFirst9Average(winner),
+        player1First9Avg: getFirst9Average(winner, true),
         player2First9Avg: 0,
       });
     }
