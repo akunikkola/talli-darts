@@ -35,6 +35,7 @@ export default function Home() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
   const [minTimeElapsed, setMinTimeElapsed] = useState(false);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const touchStartY = useRef(0);
   const isPulling = useRef(false);
@@ -49,6 +50,13 @@ export default function Home() {
     }, MIN_LOADING_TIME);
     return () => clearTimeout(timer);
   }, []);
+
+  // Mark initial load as complete once data is loaded and min time has passed
+  useEffect(() => {
+    if (!loading && minTimeElapsed && !initialLoadComplete) {
+      setInitialLoadComplete(true);
+    }
+  }, [loading, minTimeElapsed, initialLoadComplete]);
 
   const handleRefresh = useCallback(async () => {
     if (isRefreshing) return;
@@ -187,7 +195,8 @@ export default function Home() {
       .slice(0, 3);
   }, [matches]);
 
-  if (loading || !minTimeElapsed) {
+  // Only show loading screen on initial load, not during refresh
+  if (!initialLoadComplete) {
     return <LoadingScreen />;
   }
 
