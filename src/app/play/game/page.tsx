@@ -1298,6 +1298,27 @@ function GameContent() {
                     </div>
                   </div>
 
+                  {/* First 9 Average */}
+                  {(() => {
+                    const p1First9 = getFirst9Average(game.players[0]);
+                    const p2First9 = getFirst9Average(game.players[1]);
+                    const total = p1First9 + p2First9;
+                    if (total === 0) return null;
+                    return (
+                      <div>
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-white font-semibold">{p1First9.toFixed(2)}</span>
+                          <span className="text-slate-400 text-xs">First 9 Avg</span>
+                          <span className="text-white font-semibold">{p2First9.toFixed(2)}</span>
+                        </div>
+                        <div className="h-2 bg-[#333] rounded-full overflow-hidden flex">
+                          <div className="bg-[#e85d3b]" style={{ width: `${(p1First9 / total * 100) || 50}%` }} />
+                          <div className="bg-[#f5a623]" style={{ width: `${(p2First9 / total * 100) || 50}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   {/* 100+ visits */}
                   <div>
                     <div className="flex justify-between items-center mb-1">
