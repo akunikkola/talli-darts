@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useData } from "@/context/DataContext";
 import type { Player } from "@/lib/supabase-data";
 import PlayerAvatar from "@/components/PlayerAvatar";
+import { isTestPlayer } from "@/lib/test-players";
 
 type RankingType = "overall" | "301" | "501";
 
@@ -26,7 +27,8 @@ export default function Leaderboard() {
   }
 
   const getSortedPlayers = () => {
-    const sorted = [...players];
+    // Filter out test players from leaderboard
+    const sorted = players.filter(p => !isTestPlayer(p.name));
     switch (rankingType) {
       case "301":
         return sorted.sort((a, b) => b.elo301 - a.elo301);

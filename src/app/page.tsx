@@ -6,6 +6,7 @@ import { useData } from "@/context/DataContext";
 import type { Player } from "@/lib/supabase-data";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import LoadingScreen from "@/components/LoadingScreen";
+import { isTestPlayer } from "@/lib/test-players";
 
 type RankingType = "overall" | "301" | "501";
 type MatchFilterType = "all" | "ranked" | "practice";
@@ -131,7 +132,8 @@ export default function Home() {
   };
 
   const topPlayers = useMemo(() => {
-    const sorted = [...players];
+    // Filter out test players from leaderboard
+    const sorted = players.filter(p => !isTestPlayer(p.name));
     switch (rankingType) {
       case "301":
         return sorted.sort((a, b) => b.elo301 - a.elo301).slice(0, 5);

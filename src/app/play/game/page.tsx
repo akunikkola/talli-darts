@@ -6,6 +6,7 @@ import Image from "next/image";
 import { getCheckoutSuggestion } from "@/lib/darts";
 import { calculateMatchElo } from "@/lib/elo";
 import { useData } from "@/context/DataContext";
+import { isTestPlayer } from "@/lib/test-players";
 
 interface GamePlayer {
   id: string;
@@ -279,14 +280,19 @@ function GameContent() {
     const winner = game.players[winnerIndex];
     const loser = game.players[winnerIndex === 0 ? 1 : 0];
 
+    // Check if either player is a test player - skip ELO updates if so
+    const hasTestPlayer = isTestPlayer(winner.name) || isTestPlayer(loser.name);
+
     // Get stored players to access their current ELO values
     const winnerStored = getPlayer(winner.id);
     const loserStored = getPlayer(loser.id);
 
     if (!winnerStored || !loserStored) return;
 
-    // Calculate game-specific ELO changes (301 or 501)
-    const gameEloResult = calculateMatchElo(winner.elo, loser.elo, true);
+    // Calculate game-specific ELO changes (301 or 501) - but don't apply if test player
+    const gameEloResult = hasTestPlayer
+      ? { newEloA: winner.elo, newEloB: loser.elo, changeA: 0, changeB: 0 }
+      : calculateMatchElo(winner.elo, loser.elo, true);
 
     const winnerEloChange = gameEloResult.changeA;
     const loserEloChange = gameEloResult.changeB;
@@ -323,7 +329,10 @@ function GameContent() {
       winnerUpdates.wins501 = winnerStored.wins501 + 1;
     }
 
-    await updatePlayer(winner.id, winnerUpdates);
+    // Only update player stats if no test player is involved
+    if (!hasTestPlayer) {
+      await updatePlayer(winner.id, winnerUpdates);
+    }
 
     // Calculate new game-specific ELO for loser
     const newLoserElo301 = mode === "301" ? gameEloResult.newEloB : loserStored.elo301;
@@ -353,7 +362,10 @@ function GameContent() {
       loserUpdates.losses501 = loserStored.losses501 + 1;
     }
 
-    await updatePlayer(loser.id, loserUpdates);
+    // Only update player stats if no test player is involved
+    if (!hasTestPlayer) {
+      await updatePlayer(loser.id, loserUpdates);
+    }
 
     // Save match with per-player checkouts
     await saveMatch({
