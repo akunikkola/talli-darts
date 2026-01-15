@@ -98,9 +98,12 @@ export default function PlayerProfile({ params }: { params: Promise<{ id: string
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("fi-FI", { day: "2-digit", month: "2-digit" });
+  const formatDateTime = (match: MatchResult) => {
+    // Use startedAt if available, otherwise fall back to playedAt
+    const date = match.startedAt ? new Date(match.startedAt) : new Date(match.playedAt);
+    const dateStr = date.toLocaleDateString("fi-FI", { day: "2-digit", month: "2-digit" });
+    const timeStr = date.toLocaleTimeString("fi-FI", { hour: "2-digit", minute: "2-digit" });
+    return `${dateStr} ${timeStr}`;
   };
 
   if (!player) {
@@ -340,8 +343,8 @@ export default function PlayerProfile({ params }: { params: Promise<{ id: string
                   className="block bg-[#2a2a2a] rounded-xl p-3 hover:bg-[#333] transition-colors"
                 >
                   <div className="flex items-center">
-                    <div className="w-12 text-slate-500 text-xs">
-                      {formatDate(match.playedAt)}
+                    <div className="w-20 text-slate-500 text-xs">
+                      {formatDateTime(match)}
                     </div>
                     <div className="flex-1 flex items-center gap-2">
                       <span className="text-white font-medium">{player.name}</span>
@@ -363,7 +366,7 @@ export default function PlayerProfile({ params }: { params: Promise<{ id: string
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 mt-1 ml-12">
+                  <div className="flex items-center gap-2 mt-1 ml-20">
                     <span className="text-xs text-slate-500">{match.gameMode}</span>
                     <span className="text-xs text-slate-600">•</span>
                     <span className={`text-xs ${match.isRanked ? "text-[#4ade80]" : "text-[#f5a623]"}`}>

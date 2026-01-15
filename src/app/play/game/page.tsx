@@ -67,6 +67,8 @@ interface GameState {
   selectedMultiplier: DartMultiplier;
   // ELO changes after match ends (for ranked matches)
   eloChanges: { player1: number; player2: number } | null;
+  // When the match started
+  startedAt: string;
 }
 
 function GameContent() {
@@ -186,6 +188,7 @@ function GameContent() {
       currentDarts: [],
       selectedMultiplier: "single",
       eloChanges: null,
+      startedAt: new Date().toISOString(),
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataLoading]);
@@ -370,6 +373,7 @@ function GameContent() {
       player2DoubleAttempts: game.players[1].doubleAttempts,
       player1DoubleHits: game.players[0].doubleHits,
       player2DoubleHits: game.players[1].doubleHits,
+      startedAt: game.startedAt,
     });
 
     // Store ELO changes for display in winner popup
@@ -425,6 +429,7 @@ function GameContent() {
         player2DoubleAttempts: game.players[1].doubleAttempts,
         player1DoubleHits: game.players[0].doubleHits,
         player2DoubleHits: game.players[1].doubleHits,
+        startedAt: game.startedAt,
       });
     } else {
       // Multi-player match (3+ players) - store all player names
@@ -466,6 +471,7 @@ function GameContent() {
         player2DoubleAttempts: 0,
         player1DoubleHits: winner.doubleHits,
         player2DoubleHits: 0,
+        startedAt: game.startedAt,
       });
     }
 

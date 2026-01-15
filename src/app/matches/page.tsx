@@ -34,20 +34,26 @@ export default function Matches() {
     );
   }
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+  const formatDateTime = (match: MatchResult) => {
+    // Use startedAt if available, otherwise fall back to playedAt
+    const date = match.startedAt ? new Date(match.startedAt) : new Date(match.playedAt);
     const now = new Date();
     const diff = now.getTime() - date.getTime();
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
+    const time = date.toLocaleTimeString("fi-FI", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
     if (days === 0) {
-      return "Today";
+      return `Today ${time}`;
     } else if (days === 1) {
-      return "Yesterday";
+      return `Yesterday ${time}`;
     } else if (days < 7) {
-      return `${days} days ago`;
+      return `${days}d ago ${time}`;
     } else {
-      return date.toLocaleDateString();
+      return `${date.toLocaleDateString("fi-FI", { day: "2-digit", month: "2-digit" })} ${time}`;
     }
   };
 
@@ -187,7 +193,7 @@ export default function Matches() {
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-slate-500 text-sm">{formatDate(match.playedAt)}</span>
+                      <span className="text-slate-500 text-sm">{formatDateTime(match)}</span>
                       <button
                         onClick={(e) => {
                           e.preventDefault();

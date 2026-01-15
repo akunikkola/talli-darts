@@ -92,16 +92,29 @@ export default function MatchDetail() {
     }
   };
 
-  const matchDate = new Date(match.playedAt);
-  const formattedDate = matchDate.toLocaleDateString("fi-FI", {
+  // Use startedAt if available, otherwise fall back to playedAt
+  const startDate = match.startedAt ? new Date(match.startedAt) : new Date(match.playedAt);
+  const endDate = new Date(match.playedAt);
+
+  const formattedDate = startDate.toLocaleDateString("fi-FI", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
   });
-  const formattedTime = matchDate.toLocaleTimeString("fi-FI", {
+  const formattedTime = startDate.toLocaleTimeString("fi-FI", {
     hour: "2-digit",
     minute: "2-digit",
   });
+
+  // Calculate duration if we have both start and end times
+  const durationMinutes = match.startedAt
+    ? Math.round((endDate.getTime() - startDate.getTime()) / 60000)
+    : null;
+  const formattedDuration = durationMinutes !== null
+    ? durationMinutes < 60
+      ? `${durationMinutes}min`
+      : `${Math.floor(durationMinutes / 60)}h ${durationMinutes % 60}min`
+    : null;
 
   const player1Won = match.winnerId === match.player1Id;
 
@@ -157,6 +170,7 @@ export default function MatchDetail() {
         <div className="text-center">
           <p className="text-slate-400 text-sm">
             {formattedDate} {formattedTime}
+            {formattedDuration && ` • ${formattedDuration}`}
           </p>
         </div>
         <button
