@@ -331,6 +331,7 @@ export default function PlayerProfile({ params }: { params: Promise<{ id: string
               const opponent = isPlayer1 ? match.player2Name : match.player1Name;
               const playerLegs = isPlayer1 ? match.player1Legs : match.player2Legs;
               const opponentLegs = isPlayer1 ? match.player2Legs : match.player1Legs;
+              const eloChange = isPlayer1 ? match.player1EloChange : match.player2EloChange;
 
               return (
                 <Link
@@ -368,6 +369,14 @@ export default function PlayerProfile({ params }: { params: Promise<{ id: string
                     <span className={`text-xs ${match.isRanked ? "text-[#4ade80]" : "text-[#f5a623]"}`}>
                       {match.isRanked ? "Ranked" : "Practice"}
                     </span>
+                    {match.isRanked && (
+                      <>
+                        <span className="text-xs text-slate-600">•</span>
+                        <span className={`text-xs font-medium ${eloChange >= 0 ? "text-[#4ade80]" : "text-red-400"}`}>
+                          {eloChange >= 0 ? "+" : ""}{eloChange.toFixed(2)}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </Link>
               );
