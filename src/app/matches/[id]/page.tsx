@@ -341,13 +341,13 @@ export default function MatchDetail() {
             (match.player2DoubleAttempts && match.player2DoubleAttempts > 0)) && (
             <div className="mb-4">
               <div className="flex justify-between items-center mb-1">
-                <span className="text-white font-semibold">
+                <span className="text-white font-semibold w-12">
                   {match.player1DoubleAttempts && match.player1DoubleAttempts > 0
                     ? `${Math.round((match.player1DoubleHits || 0) / match.player1DoubleAttempts * 100)}%`
                     : '-'}
                 </span>
-                <span className="text-slate-400 text-sm">Doubles</span>
-                <span className="text-white font-semibold">
+                <span className="text-slate-400 text-sm flex-1 text-center">Doubles</span>
+                <span className="text-white font-semibold w-12 text-right">
                   {match.player2DoubleAttempts && match.player2DoubleAttempts > 0
                     ? `${Math.round((match.player2DoubleHits || 0) / match.player2DoubleAttempts * 100)}%`
                     : '-'}
