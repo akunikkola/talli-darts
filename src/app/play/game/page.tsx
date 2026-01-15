@@ -749,11 +749,15 @@ function GameContent() {
         if (!prev) return null;
         const newPlayers = [...prev.players];
         const currentP = newPlayers[prev.currentPlayerIndex];
+        // Track first 9 even for busts (counts as a visit with 0 score)
+        const isFirst9 = currentP.legFirst9Visits < 3;
         newPlayers[prev.currentPlayerIndex] = {
           ...currentP,
           throws: [...currentP.throws, 0],
           lastScore: 0,
           doubleAttempts: currentP.doubleAttempts + attempts,
+          legFirst9Total: currentP.legFirst9Total, // 0 added for bust
+          legFirst9Visits: isFirst9 ? currentP.legFirst9Visits + 1 : currentP.legFirst9Visits,
         };
         return {
           ...prev,
@@ -863,11 +867,15 @@ function GameContent() {
       if (!prev) return null;
       const newPlayers = [...prev.players];
       const currentP = newPlayers[prev.currentPlayerIndex];
+      // Track first 9 even for busts (counts as a visit with 0 score)
+      const isFirst9 = currentP.legFirst9Visits < 3;
       newPlayers[prev.currentPlayerIndex] = {
         ...currentP,
         throws: [...currentP.throws, 0],
         lastScore: 0,
         doubleAttempts: currentP.doubleAttempts + (doubleAttempts || 0),
+        legFirst9Total: currentP.legFirst9Total, // 0 added for bust
+        legFirst9Visits: isFirst9 ? currentP.legFirst9Visits + 1 : currentP.legFirst9Visits,
       };
       return {
         ...prev,

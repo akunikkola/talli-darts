@@ -294,8 +294,8 @@ function matchToDb(match: Partial<MatchResult> & { id: string }): Partial<DbMatc
     player1_double_hits: match.player1DoubleHits || null,
     player2_double_hits: match.player2DoubleHits || null,
     started_at: match.startedAt || null,
-    player1_first9_avg: match.player1First9Avg || null,
-    player2_first9_avg: match.player2First9Avg || null,
+    player1_first9_avg: match.player1First9Avg ?? null,
+    player2_first9_avg: match.player2First9Avg ?? null,
   };
 }
 
