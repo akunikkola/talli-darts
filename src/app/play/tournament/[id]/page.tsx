@@ -319,13 +319,15 @@ export default function TournamentViewPage() {
           {/* Group Matches */}
           <h3 className="text-white font-semibold mb-3">Matches</h3>
           <div className="space-y-2">
-            {tournament.groups[selectedGroup].matches.map((match) => (
-              <div
-                key={match.id}
-                className={`bg-[#2a2a2a] rounded-xl p-3 ${
-                  match.status === "ready" ? "border-l-4 border-[#4ade80]" : ""
-                }`}
-              >
+            {tournament.groups[selectedGroup].matches.map((match) => {
+              const isClickable = match.status === "completed" && match.matchId;
+              const statusClass = match.status === "ready"
+                ? "border-l-4 border-[#4ade80]"
+                : match.status === "completed"
+                ? "hover:bg-[#333] transition-colors"
+                : "";
+
+              const matchContent = (
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <span
@@ -367,8 +369,29 @@ export default function TournamentViewPage() {
                     </button>
                   )}
                 </div>
-              </div>
-            ))}
+              );
+
+              if (isClickable) {
+                return (
+                  <Link
+                    key={match.id}
+                    href={`/matches/${match.matchId}`}
+                    className={`block bg-[#2a2a2a] rounded-xl p-3 ${statusClass}`}
+                  >
+                    {matchContent}
+                  </Link>
+                );
+              }
+
+              return (
+                <div
+                  key={match.id}
+                  className={`bg-[#2a2a2a] rounded-xl p-3 ${statusClass}`}
+                >
+                  {matchContent}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -460,7 +483,7 @@ function BracketMatchCard({
       case "ready":
         return "border-l-4 border-[#4ade80]";
       case "completed":
-        return "";
+        return "hover:bg-[#333] transition-colors";
       case "walkover":
         return "opacity-60";
       default:
@@ -468,8 +491,10 @@ function BracketMatchCard({
     }
   };
 
-  return (
-    <div className={`bg-[#2a2a2a] rounded-xl p-3 ${getStatusColor()}`}>
+  const isClickable = match.status === "completed" && match.matchId;
+
+  const content = (
+    <>
       <div className="flex items-center justify-between">
         <div className="flex-1 space-y-1">
           {/* Player 1 */}
@@ -566,6 +591,23 @@ function BracketMatchCard({
       <div className="text-xs text-slate-500 mt-2">
         Best of {match.legsToWin * 2 - 1}
       </div>
+    </>
+  );
+
+  if (isClickable) {
+    return (
+      <Link
+        href={`/matches/${match.matchId}`}
+        className={`block bg-[#2a2a2a] rounded-xl p-3 ${getStatusColor()}`}
+      >
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <div className={`bg-[#2a2a2a] rounded-xl p-3 ${getStatusColor()}`}>
+      {content}
     </div>
   );
 }
