@@ -1377,8 +1377,9 @@ function GameContent() {
         const player1Won = game.matchWinner === game.players[0].name;
 
         return (
-        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-40 overflow-auto py-4">
-          <div className="text-center px-4 w-full max-w-md">
+        <div className="fixed inset-0 bg-black/90 z-40 overflow-auto">
+          <div className="min-h-full flex items-center justify-center py-8">
+            <div className="text-center px-4 w-full max-w-md">
             {/* Simple header when stats hidden */}
             {!showMatchStats && (
               <>
@@ -1638,6 +1639,7 @@ function GameContent() {
             ) : (
               <p className="text-slate-500 text-sm mt-4">Saving match...</p>
             )}
+            </div>
           </div>
         </div>
         );
