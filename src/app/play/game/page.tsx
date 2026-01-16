@@ -126,6 +126,19 @@ function GameContent() {
   } | null>(null);
   // Track initialization errors
   const [initError, setInitError] = useState<string | null>(null);
+  // Score popup animation
+  const [scorePopup, setScorePopup] = useState<{ score: number; visible: boolean } | null>(null);
+
+  // Show score popup briefly after submission
+  const showScorePopup = (score: number) => {
+    setScorePopup({ score, visible: true });
+    setTimeout(() => {
+      setScorePopup(prev => prev ? { ...prev, visible: false } : null);
+    }, 600);
+    setTimeout(() => {
+      setScorePopup(null);
+    }, 900);
+  };
 
   // Ref for horizontal scoreboard scrolling (3+ players)
   const scoreboardRef = useRef<HTMLDivElement>(null);
@@ -460,7 +473,7 @@ function GameContent() {
     }
 
     // Save match with per-player checkouts
-    await saveMatch({
+    const savedMatch = await saveMatch({
       player1Id: game.players[0].id,
       player2Id: game.players[1].id,
       player1Name: game.players[0].name,
@@ -501,6 +514,12 @@ function GameContent() {
       player2First9Avg: getFirst9Average(game.players[1], true),
       tournamentId: tournamentId || undefined,
     });
+
+    if (!savedMatch) {
+      console.error('Failed to save match to database');
+    } else {
+      console.log('Match saved successfully:', savedMatch.id);
+    }
 
     // Update tournament bracket/group if this is a tournament match
     if (tournamentId && tournamentMatchId) {
@@ -791,6 +810,9 @@ function GameContent() {
       remaining: remaining,
       lastScore: currentPlayer.lastScore,
     });
+
+    // Show score popup animation
+    showScorePopup(scoreValue);
 
     if (newRemaining === 0) {
       // Leg won - show confirmation
@@ -1269,6 +1291,33 @@ function GameContent() {
 
   return (
     <div className="h-dvh flex flex-col bg-[#1a1a1a] select-none overflow-hidden">
+      {/* Score Popup Animation */}
+      {scorePopup && (
+        <div
+          className={`fixed inset-0 flex items-center justify-center z-[100] pointer-events-none transition-all duration-300 ${
+            scorePopup.visible
+              ? 'opacity-100'
+              : 'opacity-0'
+          }`}
+        >
+          <div className="bg-black/95 px-16 py-10 rounded-3xl">
+            <div
+              className={`text-8xl font-black text-white tracking-tighter transition-transform duration-300 ${
+                scorePopup.visible
+                  ? 'scale-100'
+                  : 'scale-75'
+              }`}
+              style={{
+                fontFamily: "var(--font-bebas), 'Impact', 'Arial Black', sans-serif",
+                letterSpacing: '-0.02em'
+              }}
+            >
+              {scorePopup.score}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Double Attempts Popup (visit mode) */}
       {pendingDoubleAttempts && (
         <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">

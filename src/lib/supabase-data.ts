@@ -299,7 +299,8 @@ function matchToDb(match: Partial<MatchResult> & { id: string }): Partial<DbMatc
     started_at: match.startedAt || null,
     player1_first9_avg: match.player1First9Avg ?? null,
     player2_first9_avg: match.player2First9Avg ?? null,
-    tournament_id: match.tournamentId || null,
+    // Only include tournament_id if it has a value (column may not exist in older schemas)
+    ...(match.tournamentId ? { tournament_id: match.tournamentId } : {}),
   };
 }
 
@@ -621,6 +622,7 @@ export async function createMatch(match: Omit<MatchResult, 'id' | 'playedAt'>): 
 
   if (error) {
     console.error('Error creating match:', error);
+    console.error('Match data that failed:', JSON.stringify(newMatch, null, 2));
     return null;
   }
 
