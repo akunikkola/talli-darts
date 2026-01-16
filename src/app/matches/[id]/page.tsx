@@ -242,11 +242,11 @@ export default function MatchDetail() {
             </Link>
 
             {/* Score */}
-            <div className="px-4">
+            <div className="flex-1 text-center">
               <p className="text-5xl font-bold text-white">
                 {match.player1Legs} - {match.player2Legs}
               </p>
-              <p className="text-center text-slate-500 text-sm mt-1">
+              <p className="text-slate-500 text-sm mt-1">
                 {match.isRanked ? "Ranked" : "Practice"} • {match.gameMode}
                 {match.tournamentId && <span className="text-purple-400"> • Tournament</span>}
               </p>
