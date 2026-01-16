@@ -62,6 +62,8 @@ interface GameState {
   pendingLegWin: { winnerIndex: number; winnerName: string } | null;
   // Track current leg number (1-indexed) to alternate starters
   currentLeg: number;
+  // Track which player index started the first leg (for proper alternation)
+  initialStarter: number;
   // Track highest checkout across all legs in the match (for backwards compatibility)
   matchHighestCheckout: number;
   // Track each player's highest checkout separately
@@ -97,6 +99,7 @@ function GameContent() {
   const tournamentMatchId = searchParams.get("tournamentMatchId");
   const tournamentMatchType = searchParams.get("tournamentMatchType") as "bracket" | "group" | null;
   const tournamentGroupId = searchParams.get("tournamentGroupId");
+  const starterParam = searchParams.get("starter"); // Player ID who starts first
 
   const [game, setGame] = useState<GameState | null>(null);
   const [lastAction, setLastAction] = useState<{
@@ -247,9 +250,18 @@ function GameContent() {
           return;
         }
 
+        // Determine starting player index (default to 0 if not specified)
+        let starterIndex = 0;
+        if (starterParam) {
+          const foundIndex = gamePlayers.findIndex(p => p.id === starterParam);
+          if (foundIndex !== -1) {
+            starterIndex = foundIndex;
+          }
+        }
+
         setGame({
           players: gamePlayers,
-          currentPlayerIndex: 0,
+          currentPlayerIndex: starterIndex,
           startingScore,
           legsToWin,
           gameMode: mode,
@@ -260,6 +272,7 @@ function GameContent() {
           matchSaved: false,
           pendingLegWin: null,
           currentLeg: 1,
+          initialStarter: starterIndex,
           matchHighestCheckout: 0,
           playerHighestCheckouts: gamePlayers.map(() => 0),
           inputMode: "round",
@@ -707,10 +720,10 @@ function GameContent() {
         savePracticeMatch(winnerIndex, finalLegs, newHighestCheckout, newPlayerHighestCheckouts);
       }
     } else {
-      // Start new leg - alternate the starter
+      // Start new leg - alternate the starter based on who started first
       const nextLeg = game.currentLeg + 1;
-      // Leg 1: player 0 starts, Leg 2: player 1 starts, Leg 3: player 0 starts, etc.
-      const nextStarter = (nextLeg - 1) % game.players.length;
+      // If initialStarter started leg 1, the other player starts leg 2, etc.
+      const nextStarter = (game.initialStarter + nextLeg - 1) % game.players.length;
 
       setGame((prev) => {
         if (!prev) return null;

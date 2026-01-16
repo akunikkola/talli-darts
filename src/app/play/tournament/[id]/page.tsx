@@ -22,6 +22,14 @@ export default function TournamentViewPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("bracket");
   const [selectedGroup, setSelectedGroup] = useState(0);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [starterSelection, setStarterSelection] = useState<{
+    player1: { id: string; name: string };
+    player2: { id: string; name: string };
+    matchType: "bracket" | "group";
+    matchId: string;
+    groupId?: string;
+    legsToWin: number;
+  } | null>(null);
 
   useEffect(() => {
     const unsubscribe = subscribeToTournament(tournamentId, (t) => {
@@ -47,18 +55,14 @@ export default function TournamentViewPage() {
   const handlePlayMatch = (match: BracketMatch) => {
     if (!tournament || !match.player1 || !match.player2) return;
 
-    const searchParams = new URLSearchParams({
-      p1: match.player1.id,
-      p2: match.player2.id,
-      mode: tournament.gameMode,
-      legs: match.legsToWin.toString(),
-      ranked: "true",
-      tournamentId: tournament.id,
-      tournamentMatchId: match.id,
-      tournamentMatchType: "bracket",
+    // Show starter selection modal
+    setStarterSelection({
+      player1: { id: match.player1.id, name: match.player1.name },
+      player2: { id: match.player2.id, name: match.player2.name },
+      matchType: "bracket",
+      matchId: match.id,
+      legsToWin: match.legsToWin,
     });
-
-    router.push(`/play/game?${searchParams.toString()}`);
   };
 
   const handlePlayGroupMatch = (group: TournamentGroup, matchId: string) => {
@@ -67,18 +71,37 @@ export default function TournamentViewPage() {
     const match = group.matches.find((m) => m.id === matchId);
     if (!match) return;
 
+    // Show starter selection modal
+    setStarterSelection({
+      player1: { id: match.player1Id, name: match.player1Name },
+      player2: { id: match.player2Id, name: match.player2Name },
+      matchType: "group",
+      matchId: match.id,
+      groupId: group.id,
+      legsToWin: tournament.legsConfig.groupStage,
+    });
+  };
+
+  const handleStartMatch = (starterId: string) => {
+    if (!tournament || !starterSelection) return;
+
     const searchParams = new URLSearchParams({
-      p1: match.player1Id,
-      p2: match.player2Id,
+      p1: starterSelection.player1.id,
+      p2: starterSelection.player2.id,
       mode: tournament.gameMode,
-      legs: tournament.legsConfig.groupStage.toString(),
+      legs: starterSelection.legsToWin.toString(),
       ranked: "true",
       tournamentId: tournament.id,
-      tournamentMatchId: match.id,
-      tournamentMatchType: "group",
-      tournamentGroupId: group.id,
+      tournamentMatchId: starterSelection.matchId,
+      tournamentMatchType: starterSelection.matchType,
+      starter: starterId,
     });
 
+    if (starterSelection.matchType === "group" && starterSelection.groupId) {
+      searchParams.set("tournamentGroupId", starterSelection.groupId);
+    }
+
+    setStarterSelection(null);
     router.push(`/play/game?${searchParams.toString()}`);
   };
 
@@ -463,6 +486,40 @@ export default function TournamentViewPage() {
                 Delete
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Starter Selection Modal */}
+      {starterSelection && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+          <div className="bg-[#2a2a2a] rounded-xl p-6 max-w-sm w-full">
+            <h3 className="text-white font-semibold text-lg mb-2 text-center">
+              Who throws first?
+            </h3>
+            <p className="text-slate-400 text-sm mb-6 text-center">
+              The starter will alternate each leg
+            </p>
+            <div className="space-y-3">
+              <button
+                onClick={() => handleStartMatch(starterSelection.player1.id)}
+                className="w-full py-4 bg-[#333] hover:bg-[#444] text-white rounded-xl font-semibold text-lg transition-colors"
+              >
+                {starterSelection.player1.name}
+              </button>
+              <button
+                onClick={() => handleStartMatch(starterSelection.player2.id)}
+                className="w-full py-4 bg-[#333] hover:bg-[#444] text-white rounded-xl font-semibold text-lg transition-colors"
+              >
+                {starterSelection.player2.name}
+              </button>
+            </div>
+            <button
+              onClick={() => setStarterSelection(null)}
+              className="w-full mt-4 py-2 text-slate-400 hover:text-white text-sm"
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}
