@@ -99,13 +99,14 @@ function generateCupBracket(
   players: Player[],
   bracketSize: 4 | 8 | 16,
   legsConfig: TournamentSetupData["legsConfig"],
-  bronzeMatchEnabled: boolean
+  bronzeMatchEnabled: boolean,
+  gameMode: "301" | "501"
 ): BracketMatch[] {
-  // Sort players by ELO (descending)
+  // Sort players by game-mode specific ELO (descending)
   const sorted = [...players].sort((a, b) => {
-    const avgA = (a.elo301 + a.elo501) / 2;
-    const avgB = (b.elo301 + b.elo501) / 2;
-    return avgB - avgA;
+    const eloA = gameMode === "301" ? a.elo301 : a.elo501;
+    const eloB = gameMode === "301" ? b.elo301 : b.elo501;
+    return eloB - eloA;
   });
 
   // Assign seeds
@@ -282,13 +283,14 @@ function processWalkovers(matches: BracketMatch[]): BracketMatch[] {
 function generateRoundRobinGroups(
   players: Player[],
   groupCount: 2 | 4,
-  legsConfig: TournamentSetupData["legsConfig"]
+  legsConfig: TournamentSetupData["legsConfig"],
+  gameMode: "301" | "501"
 ): TournamentGroup[] {
-  // Sort players by ELO (descending)
+  // Sort players by game-mode specific ELO (descending)
   const sorted = [...players].sort((a, b) => {
-    const avgA = (a.elo301 + a.elo501) / 2;
-    const avgB = (b.elo301 + b.elo501) / 2;
-    return avgB - avgA;
+    const eloA = gameMode === "301" ? a.elo301 : a.elo501;
+    const eloB = gameMode === "301" ? b.elo301 : b.elo501;
+    return eloB - eloA;
   });
 
   // Snake draft into groups
@@ -503,14 +505,16 @@ export async function createTournament(
       selectedPlayers,
       setupData.bracketSize!,
       setupData.legsConfig,
-      setupData.bronzeMatchEnabled
+      setupData.bronzeMatchEnabled,
+      setupData.gameMode
     );
   } else {
     // Round-robin
     groups = generateRoundRobinGroups(
       selectedPlayers,
       setupData.groupCount!,
-      setupData.legsConfig
+      setupData.legsConfig,
+      setupData.gameMode
     );
     bracket = generateRoundRobinKnockout(
       setupData.groupCount!,

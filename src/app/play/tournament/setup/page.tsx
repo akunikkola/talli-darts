@@ -181,7 +181,12 @@ export default function TournamentSetupPage() {
 
   // Generate bracket preview for cup format
   const generateBracketPreview = () => {
-    const sorted = [...selectedPlayers];
+    // Sort by game-mode specific ELO (descending)
+    const sorted = [...selectedPlayers].sort((a, b) => {
+      const eloA = gameMode === "301" ? a.elo301 : a.elo501;
+      const eloB = gameMode === "301" ? b.elo301 : b.elo501;
+      return eloB - eloA;
+    });
     const seeds: { player: (typeof sorted)[0] | undefined; seed: number }[] = [];
 
     for (let i = 0; i < bracketSize; i++) {
@@ -225,7 +230,12 @@ export default function TournamentSetupPage() {
 
   // Generate group preview for round-robin format
   const generateGroupPreview = () => {
-    const sorted = [...selectedPlayers];
+    // Sort by game-mode specific ELO (descending)
+    const sorted = [...selectedPlayers].sort((a, b) => {
+      const eloA = gameMode === "301" ? a.elo301 : a.elo501;
+      const eloB = gameMode === "301" ? b.elo301 : b.elo501;
+      return eloB - eloA;
+    });
     const groups: (typeof sorted[0])[][] = Array.from(
       { length: groupCount },
       () => []
