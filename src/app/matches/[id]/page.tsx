@@ -248,6 +248,7 @@ export default function MatchDetail() {
               </p>
               <p className="text-center text-slate-500 text-sm mt-1">
                 {match.isRanked ? "Ranked" : "Practice"} • {match.gameMode}
+                {match.tournamentId && <span className="text-purple-400"> • Tournament</span>}
               </p>
             </div>
 
@@ -424,6 +425,14 @@ export default function MatchDetail() {
               {match.isRanked ? "Ranked" : "Practice"}
             </span>
           </div>
+          {match.tournamentId && (
+            <div className="flex justify-between">
+              <span className="text-slate-400">Tournament</span>
+              <Link href={`/play/tournament/${match.tournamentId}`} className="text-purple-400 hover:text-purple-300">
+                View Tournament
+              </Link>
+            </div>
+          )}
           <div className="flex justify-between">
             <span className="text-slate-400">Winner</span>
             <span className="text-white font-semibold">{match.winnerName}</span>

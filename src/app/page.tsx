@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useRef, useCallback } from "react";
+import { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import { useData } from "@/context/DataContext";
 import type { Player } from "@/lib/supabase-data";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import LoadingScreen from "@/components/LoadingScreen";
 import { isTestPlayer } from "@/lib/test-players";
+import { fetchActiveTournament, fetchTournaments } from "@/lib/tournament-data";
+import type { Tournament } from "@/types/tournament";
 
 type RankingType = "overall" | "301" | "501";
 type MatchFilterType = "all" | "ranked" | "practice";
@@ -35,17 +37,39 @@ export default function Home() {
   const [matchFilter, setMatchFilter] = useState<MatchFilterType>("all");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
+  const [activeTournament, setActiveTournament] = useState<Tournament | null>(null);
+  const [tournamentHistory, setTournamentHistory] = useState<Tournament[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const touchStartY = useRef(0);
   const isPulling = useRef(false);
 
   const PULL_THRESHOLD = 80;
 
+  // Fetch tournaments (active and history)
+  useEffect(() => {
+    const loadTournaments = async () => {
+      const [active, allTournaments] = await Promise.all([
+        fetchActiveTournament(),
+        fetchTournaments(),
+      ]);
+      setActiveTournament(active);
+      // Filter to only completed tournaments for history
+      setTournamentHistory(allTournaments.filter(t => t.status === "completed").slice(0, 5));
+    };
+    loadTournaments();
+  }, []);
+
   const handleRefresh = useCallback(async () => {
     if (isRefreshing) return;
     setIsRefreshing(true);
     try {
       await refreshData();
+      const [active, allTournaments] = await Promise.all([
+        fetchActiveTournament(),
+        fetchTournaments(),
+      ]);
+      setActiveTournament(active);
+      setTournamentHistory(allTournaments.filter(t => t.status === "completed").slice(0, 5));
     } finally {
       setIsRefreshing(false);
       setPullDistance(0);
@@ -242,22 +266,60 @@ export default function Home() {
       </div>
 
       {/* Match Type Buttons */}
-      <div className="grid grid-cols-2 gap-3 mb-6">
+      <div className="flex flex-col gap-3 mb-6">
         <Link
           href="/play/ranking"
-          className="py-5 bg-[#4ade80] hover:bg-[#22c55e] text-black text-center rounded-2xl transition-colors"
+          className="py-4 bg-[#2a2a2a] hover:bg-[#333] text-white text-center rounded-2xl transition-colors"
         >
-          <span className="text-lg font-bold block">Official Match</span>
-          <span className="text-sm opacity-70">1v1 • For the record</span>
+          <span className="text-lg font-bold">Official Match</span>
+        </Link>
+        <Link
+          href="/play/tournament/setup"
+          className="py-4 bg-[#2a2a2a] hover:bg-[#333] text-white text-center rounded-2xl transition-colors"
+        >
+          <span className="text-lg font-bold">Tournament Mode</span>
         </Link>
         <Link
           href="/play/practice"
-          className="py-5 bg-[#f5a623] hover:bg-[#d98f1e] text-black text-center rounded-2xl transition-colors"
+          className="py-4 bg-[#2a2a2a] hover:bg-[#333] text-white text-center rounded-2xl transition-colors"
         >
-          <span className="text-lg font-bold block">Practice Match</span>
-          <span className="text-sm opacity-70">2-6 players</span>
+          <span className="text-lg font-bold">Practice Match</span>
         </Link>
       </div>
+
+      {/* Now Playing - Active Tournament */}
+      {activeTournament && (
+        <Link
+          href={`/play/tournament/${activeTournament.id}`}
+          className="block mb-6 bg-[#2a2a2a] rounded-xl p-4 border-l-4 border-[#4ade80] hover:bg-[#333] transition-colors"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[#4ade80] text-xs font-semibold uppercase tracking-wide mb-1">
+                Now Playing
+              </p>
+              <p className="text-white font-semibold">{activeTournament.name}</p>
+              <p className="text-slate-400 text-sm">
+                {activeTournament.format === "cup" ? "Cup" : "Round-Robin"} • {activeTournament.gameMode} • {activeTournament.playerCount} players
+              </p>
+            </div>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6 text-[#4ade80]"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+          </div>
+        </Link>
+      )}
 
       {/* Top Players */}
       <div className="mb-6">
@@ -433,6 +495,12 @@ export default function Home() {
                     <span className={match.isRanked ? "text-[#4ade80]" : "text-[#f5a623]"}>
                       {match.isRanked ? "Ranked" : "Practice"}
                     </span>
+                    {match.tournamentId && (
+                      <>
+                        <span>•</span>
+                        <span className="text-purple-400">Tournament</span>
+                      </>
+                    )}
                     {isMultiPlayer && (
                       <>
                         <span>•</span>
@@ -448,6 +516,55 @@ export default function Home() {
           )}
         </div>
       </div>
+
+      {/* Tournament History */}
+      {tournamentHistory.length > 0 && (
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-white font-semibold">Tournament History</h2>
+          </div>
+          <div className="bg-[#2a2a2a] rounded-xl overflow-hidden">
+            {tournamentHistory.map((tournament) => {
+              // Find winner name from bracket
+              const finalMatch = tournament.bracket?.find(
+                (m) => m.matchType === "regular" && m.winnerId === tournament.winnerId
+              );
+              const winnerName = finalMatch?.player1?.id === tournament.winnerId
+                ? finalMatch?.player1?.name
+                : finalMatch?.player2?.name;
+
+              return (
+                <Link
+                  key={tournament.id}
+                  href={`/play/tournament/${tournament.id}`}
+                  className="block px-4 py-3 border-b border-[#333] last:border-b-0 hover:bg-[#333] transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-white font-semibold">{tournament.name}</span>
+                      {winnerName && (
+                        <span className="text-[#4ade80] ml-2">
+                          {winnerName}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-slate-500 text-sm">
+                      {tournament.playerCount} players
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
+                    <span>{tournament.format === "cup" ? "Cup" : "Round-Robin"}</span>
+                    <span>•</span>
+                    <span>{tournament.gameMode}</span>
+                    <span>•</span>
+                    <span>{new Date(tournament.completedAt || tournament.createdAt).toLocaleDateString()}</span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Weekly Highest Checkouts */}
       <div className="mb-6">

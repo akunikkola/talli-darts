@@ -70,6 +70,7 @@ interface DbMatch {
   started_at: string | null;
   player1_first9_avg: number | null;
   player2_first9_avg: number | null;
+  tournament_id: string | null;
 }
 
 // Player type that matches our app's interface
@@ -143,6 +144,7 @@ export interface MatchResult {
   startedAt?: string; // When the match started
   player1First9Avg?: number; // First 9 darts average for player 1
   player2First9Avg?: number; // First 9 darts average for player 2
+  tournamentId?: string; // Tournament ID if this is a tournament match
 }
 
 // Convert DB player to app player
@@ -249,6 +251,7 @@ function dbToMatch(db: DbMatch): MatchResult {
     startedAt: db.started_at || undefined,
     player1First9Avg: db.player1_first9_avg || undefined,
     player2First9Avg: db.player2_first9_avg || undefined,
+    tournamentId: db.tournament_id || undefined,
   };
 }
 
@@ -296,6 +299,7 @@ function matchToDb(match: Partial<MatchResult> & { id: string }): Partial<DbMatc
     started_at: match.startedAt || null,
     player1_first9_avg: match.player1First9Avg ?? null,
     player2_first9_avg: match.player2First9Avg ?? null,
+    tournament_id: match.tournamentId || null,
   };
 }
 

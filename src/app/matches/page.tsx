@@ -186,6 +186,11 @@ export default function Matches() {
                       }`}>
                         {match.isRanked ? "Ranked" : "Practice"}
                       </span>
+                      {match.tournamentId && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400">
+                          Tournament
+                        </span>
+                      )}
                       {isMultiPlayer && (
                         <span className="text-xs px-2 py-0.5 rounded-full bg-slate-600/30 text-slate-400">
                           {match.playerCount} players

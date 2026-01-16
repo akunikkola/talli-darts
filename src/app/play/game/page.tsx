@@ -7,6 +7,8 @@ import { getCheckoutSuggestion } from "@/lib/darts";
 import { calculateMatchElo } from "@/lib/elo";
 import { useData } from "@/context/DataContext";
 import { isTestPlayer } from "@/lib/test-players";
+import { updateBracketMatch, updateGroupMatch } from "@/lib/tournament-data";
+import { fetchPlayer } from "@/lib/supabase-data";
 
 interface GamePlayer {
   id: string;
@@ -90,6 +92,12 @@ function GameContent() {
   const isRanked = searchParams.get("ranked") === "true";
   const startingScore = mode === "301" ? 301 : 501;
 
+  // Tournament parameters
+  const tournamentId = searchParams.get("tournamentId");
+  const tournamentMatchId = searchParams.get("tournamentMatchId");
+  const tournamentMatchType = searchParams.get("tournamentMatchType") as "bracket" | "group" | null;
+  const tournamentGroupId = searchParams.get("tournamentGroupId");
+
   const [game, setGame] = useState<GameState | null>(null);
   const [lastAction, setLastAction] = useState<{
     playerIndex: number;
@@ -148,56 +156,64 @@ function GameContent() {
       return;
     }
 
-    const gamePlayers: GamePlayer[] = playerIds.map(id => {
-      const p = getPlayer(id);
-      if (!p) return null;
-      return {
-        id: p.id,
-        name: p.name,
-        elo: mode === "301" ? p.elo301 : p.elo501,
-        remaining: startingScore,
-        legsWon: 0,
-        throws: [],
-        lastScore: null,
-        oneEighties: 0,
-        haminas: 0,
-        sixtyPlus: 0,
-        eightyPlus: 0,
-        hundredPlus: 0,
-        doubleAttempts: 0,
-        doubleHits: 0,
-        legFirst9Total: 0,
-        legFirst9Visits: 0,
-        allFirst9Totals: [],
-      };
-    }).filter(Boolean) as GamePlayer[];
+    // Fetch fresh player data from database to ensure we have latest ELO values
+    // This is important for tournament matches where ELO changes between games
+    const initializePlayers = async () => {
+      const playerPromises = playerIds.map(id => fetchPlayer(id));
+      const fetchedPlayers = await Promise.all(playerPromises);
 
-    if (gamePlayers.length < 2) {
-      router.push("/");
-      return;
-    }
+      const gamePlayers: GamePlayer[] = fetchedPlayers.map(p => {
+        if (!p) return null;
+        return {
+          id: p.id,
+          name: p.name,
+          elo: mode === "301" ? p.elo301 : p.elo501,
+          remaining: startingScore,
+          legsWon: 0,
+          throws: [],
+          lastScore: null,
+          oneEighties: 0,
+          haminas: 0,
+          sixtyPlus: 0,
+          eightyPlus: 0,
+          hundredPlus: 0,
+          doubleAttempts: 0,
+          doubleHits: 0,
+          legFirst9Total: 0,
+          legFirst9Visits: 0,
+          allFirst9Totals: [],
+        };
+      }).filter(Boolean) as GamePlayer[];
 
-    setGame({
-      players: gamePlayers,
-      currentPlayerIndex: 0,
-      startingScore,
-      legsToWin,
-      gameMode: mode,
-      isRanked,
-      currentScore: "",
-      gameOver: false,
-      matchWinner: null,
-      matchSaved: false,
-      pendingLegWin: null,
-      currentLeg: 1,
-      matchHighestCheckout: 0,
-      playerHighestCheckouts: gamePlayers.map(() => 0),
-      inputMode: "round",
-      currentDarts: [],
-      selectedMultiplier: "single",
-      eloChanges: null,
-      startedAt: new Date().toISOString(),
-    });
+      if (gamePlayers.length < 2) {
+        router.push("/");
+        return;
+      }
+
+      setGame({
+        players: gamePlayers,
+        currentPlayerIndex: 0,
+        startingScore,
+        legsToWin,
+        gameMode: mode,
+        isRanked,
+        currentScore: "",
+        gameOver: false,
+        matchWinner: null,
+        matchSaved: false,
+        pendingLegWin: null,
+        currentLeg: 1,
+        matchHighestCheckout: 0,
+        playerHighestCheckouts: gamePlayers.map(() => 0),
+        inputMode: "round",
+        currentDarts: [],
+        selectedMultiplier: "single",
+        eloChanges: null,
+        startedAt: new Date().toISOString(),
+      });
+    };
+
+    initializePlayers();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataLoading]);
 
@@ -407,7 +423,35 @@ function GameContent() {
       startedAt: game.startedAt,
       player1First9Avg: getFirst9Average(game.players[0], true),
       player2First9Avg: getFirst9Average(game.players[1], true),
+      tournamentId: tournamentId || undefined,
     });
+
+    // Update tournament bracket/group if this is a tournament match
+    if (tournamentId && tournamentMatchId) {
+      const score = {
+        player1Legs: winnerIndex === 0 ? winnerLegs : loserLegs,
+        player2Legs: winnerIndex === 1 ? winnerLegs : loserLegs,
+      };
+
+      if (tournamentMatchType === "bracket") {
+        await updateBracketMatch(
+          tournamentId,
+          tournamentMatchId,
+          winner.id,
+          score,
+          "match-" + Date.now() // temporary match ID
+        );
+      } else if (tournamentMatchType === "group" && tournamentGroupId) {
+        await updateGroupMatch(
+          tournamentId,
+          tournamentGroupId,
+          tournamentMatchId,
+          winner.id,
+          score,
+          "match-" + Date.now()
+        );
+      }
+    }
 
     // Store ELO changes for display in winner popup
     setGame((prev) => prev ? {
@@ -833,7 +877,13 @@ function GameContent() {
     setLastAction(null);
   };
 
-  const handleNewGame = () => router.push("/");
+  const handleNewGame = () => {
+    if (tournamentId) {
+      router.push(`/play/tournament/${tournamentId}`);
+    } else {
+      router.push("/");
+    }
+  };
   const handleRematch = () => {
     window.location.reload();
   };
@@ -1447,14 +1497,16 @@ function GameContent() {
                   onClick={handleNewGame}
                   className="w-full py-4 px-8 bg-[#4ade80] hover:bg-[#22c55e] rounded-full text-xl font-semibold text-black"
                 >
-                  Done
+                  {tournamentId ? "Back to Tournament" : "Done"}
                 </button>
-                <button
-                  onClick={handleRematch}
-                  className="w-full py-4 px-8 bg-slate-700 hover:bg-slate-600 rounded-full text-xl font-semibold text-white"
-                >
-                  Rematch
-                </button>
+                {!tournamentId && (
+                  <button
+                    onClick={handleRematch}
+                    className="w-full py-4 px-8 bg-slate-700 hover:bg-slate-600 rounded-full text-xl font-semibold text-white"
+                  >
+                    Rematch
+                  </button>
+                )}
               </div>
             ) : (
               <p className="text-slate-500 text-sm mt-4">Saving match...</p>
