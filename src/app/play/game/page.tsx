@@ -124,6 +124,8 @@ function GameContent() {
     score: number;
     previousRemaining: number;
   } | null>(null);
+  // Track initialization errors
+  const [initError, setInitError] = useState<string | null>(null);
 
   // Ref for horizontal scoreboard scrolling (3+ players)
   const scoreboardRef = useRef<HTMLDivElement>(null);
@@ -193,59 +195,75 @@ function GameContent() {
 
     // Fetch fresh player data from database to ensure we have latest ELO values
     // This is important for tournament matches where ELO changes between games
-    const initializePlayers = async () => {
-      const playerPromises = playerIds.map(id => fetchPlayer(id));
-      const fetchedPlayers = await Promise.all(playerPromises);
+    const initializePlayers = async (retryCount = 0) => {
+      try {
+        const playerPromises = playerIds.map(id => fetchPlayer(id));
+        const fetchedPlayers = await Promise.all(playerPromises);
 
-      const gamePlayers: GamePlayer[] = fetchedPlayers.map(p => {
-        if (!p) return null;
-        return {
-          id: p.id,
-          name: p.name,
-          elo: mode === "301" ? p.elo301 : p.elo501,
-          remaining: startingScore,
-          legsWon: 0,
-          throws: [],
-          lastScore: null,
-          oneEighties: 0,
-          haminas: 0,
-          sixtyPlus: 0,
-          eightyPlus: 0,
-          hundredPlus: 0,
-          doubleAttempts: 0,
-          doubleHits: 0,
-          legFirst9Total: 0,
-          legFirst9Visits: 0,
-          allFirst9Totals: [],
-        };
-      }).filter(Boolean) as GamePlayer[];
+        const gamePlayers: GamePlayer[] = fetchedPlayers.map(p => {
+          if (!p) return null;
+          return {
+            id: p.id,
+            name: p.name,
+            elo: mode === "301" ? p.elo301 : p.elo501,
+            remaining: startingScore,
+            legsWon: 0,
+            throws: [],
+            lastScore: null,
+            oneEighties: 0,
+            haminas: 0,
+            sixtyPlus: 0,
+            eightyPlus: 0,
+            hundredPlus: 0,
+            doubleAttempts: 0,
+            doubleHits: 0,
+            legFirst9Total: 0,
+            legFirst9Visits: 0,
+            allFirst9Totals: [],
+          };
+        }).filter(Boolean) as GamePlayer[];
 
-      if (gamePlayers.length < 2) {
-        router.push("/");
-        return;
+        if (gamePlayers.length < 2) {
+          // Retry once if players couldn't be loaded
+          if (retryCount < 2) {
+            console.log(`Player fetch incomplete, retrying... (attempt ${retryCount + 2})`);
+            await new Promise(resolve => setTimeout(resolve, 500));
+            return initializePlayers(retryCount + 1);
+          }
+          setInitError("Could not load players. Please try again.");
+          return;
+        }
+
+        setGame({
+          players: gamePlayers,
+          currentPlayerIndex: 0,
+          startingScore,
+          legsToWin,
+          gameMode: mode,
+          isRanked,
+          currentScore: "",
+          gameOver: false,
+          matchWinner: null,
+          matchSaved: false,
+          pendingLegWin: null,
+          currentLeg: 1,
+          matchHighestCheckout: 0,
+          playerHighestCheckouts: gamePlayers.map(() => 0),
+          inputMode: "round",
+          currentDarts: [],
+          selectedMultiplier: "single",
+          eloChanges: null,
+          startedAt: new Date().toISOString(),
+        });
+      } catch (error) {
+        console.error("Error initializing game:", error);
+        if (retryCount < 2) {
+          console.log(`Initialization error, retrying... (attempt ${retryCount + 2})`);
+          await new Promise(resolve => setTimeout(resolve, 500));
+          return initializePlayers(retryCount + 1);
+        }
+        setInitError("Failed to start game. Please try again.");
       }
-
-      setGame({
-        players: gamePlayers,
-        currentPlayerIndex: 0,
-        startingScore,
-        legsToWin,
-        gameMode: mode,
-        isRanked,
-        currentScore: "",
-        gameOver: false,
-        matchWinner: null,
-        matchSaved: false,
-        pendingLegWin: null,
-        currentLeg: 1,
-        matchHighestCheckout: 0,
-        playerHighestCheckouts: gamePlayers.map(() => 0),
-        inputMode: "round",
-        currentDarts: [],
-        selectedMultiplier: "single",
-        eloChanges: null,
-        startedAt: new Date().toISOString(),
-      });
     };
 
     initializePlayers();
@@ -263,8 +281,31 @@ function GameContent() {
 
   if (!game) {
     return (
-      <div className="min-h-screen bg-[#1a1a1a] flex items-center justify-center">
-        <p className="text-white">Loading...</p>
+      <div className="min-h-screen bg-[#1a1a1a] flex flex-col items-center justify-center gap-4 p-4">
+        {initError ? (
+          <>
+            <p className="text-red-400 text-center">{initError}</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setInitError(null);
+                  window.location.reload();
+                }}
+                className="px-6 py-3 bg-[#4ade80] hover:bg-[#22c55e] rounded-xl font-semibold text-black"
+              >
+                Retry
+              </button>
+              <button
+                onClick={() => router.push("/")}
+                className="px-6 py-3 bg-[#2a2a2a] hover:bg-[#3a3a3a] rounded-xl font-semibold text-white"
+              >
+                Go Back
+              </button>
+            </div>
+          </>
+        ) : (
+          <p className="text-white">Loading...</p>
+        )}
       </div>
     );
   }
