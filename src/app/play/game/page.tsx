@@ -535,7 +535,7 @@ function GameContent() {
     }
 
     // Update tournament bracket/group if this is a tournament match
-    if (tournamentId && tournamentMatchId) {
+    if (tournamentId && tournamentMatchId && savedMatch) {
       const score = {
         player1Legs: winnerIndex === 0 ? winnerLegs : loserLegs,
         player2Legs: winnerIndex === 1 ? winnerLegs : loserLegs,
@@ -547,7 +547,7 @@ function GameContent() {
           tournamentMatchId,
           winner.id,
           score,
-          "match-" + Date.now() // temporary match ID
+          savedMatch.id // Use the actual saved match ID
         );
       } else if (tournamentMatchType === "group" && tournamentGroupId) {
         await updateGroupMatch(
@@ -556,7 +556,7 @@ function GameContent() {
           tournamentMatchId,
           winner.id,
           score,
-          "match-" + Date.now()
+          savedMatch.id // Use the actual saved match ID
         );
       }
     }
