@@ -196,10 +196,10 @@ export default function MatchDetail() {
 
       {/* Score Header */}
       <div className="px-4 pb-6">
-        <div className="bg-[#2a2a2a] rounded-2xl p-6">
-          <div className="flex items-center justify-between">
+        <div className="bg-[#2a2a2a] rounded-2xl p-4">
+          <div className="flex items-center">
             {/* Player 1 */}
-            <Link href={`/players/${match.player1Id}`} className="flex-1 text-center group">
+            <Link href={`/players/${match.player1Id}`} className="text-center group w-20 flex-shrink-0">
               <div
                 className={`w-16 h-16 mx-auto rounded-lg overflow-hidden flex items-center justify-center text-2xl font-bold mb-2 group-hover:ring-2 group-hover:ring-[#4ade80] transition-all ${
                   !player1?.profilePictureUrl ? (player1Won ? "bg-[#e85d3b]" : "bg-[#444]") : ""
@@ -242,8 +242,8 @@ export default function MatchDetail() {
             </Link>
 
             {/* Score */}
-            <div className="flex-1 text-center">
-              <p className="text-5xl font-bold text-white">
+            <div className="flex-1 text-center px-2">
+              <p className="text-5xl font-bold text-white whitespace-nowrap">
                 {match.player1Legs} - {match.player2Legs}
               </p>
               <p className="text-slate-500 text-sm mt-1">
@@ -253,7 +253,7 @@ export default function MatchDetail() {
             </div>
 
             {/* Player 2 */}
-            <Link href={`/players/${match.player2Id}`} className="flex-1 text-center group">
+            <Link href={`/players/${match.player2Id}`} className="text-center group w-20 flex-shrink-0">
               <div
                 className={`w-16 h-16 mx-auto rounded-lg overflow-hidden flex items-center justify-center text-2xl font-bold mb-2 group-hover:ring-2 group-hover:ring-[#4ade80] transition-all ${
                   !player2?.profilePictureUrl ? (!player1Won ? "bg-[#f5a623]" : "bg-[#444]") : ""
