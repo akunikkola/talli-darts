@@ -27,6 +27,7 @@ interface DataContextType {
   players: Player[];
   matches: MatchResult[];
   loading: boolean;
+  initialLoadComplete: boolean;
 
   // Player operations
   getPlayer: (id: string) => Player | undefined;
@@ -47,10 +48,25 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | null>(null);
 
+const MIN_LOADING_TIME = 1200; // 1.2 seconds minimum loading screen
+
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const [players, setPlayers] = useState<Player[]>([]);
   const [matches, setMatches] = useState<MatchResult[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dataLoaded, setDataLoaded] = useState(false);
+  const [minTimeElapsed, setMinTimeElapsed] = useState(false);
+
+  // Minimum loading time timer - runs once when app starts
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMinTimeElapsed(true);
+    }, MIN_LOADING_TIME);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Initial load is complete when both data is loaded AND minimum time has passed
+  const initialLoadComplete = dataLoaded && minTimeElapsed;
 
   // Initialize and subscribe to real-time updates
   useEffect(() => {
@@ -69,6 +85,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         );
         setPlayers(uniquePlayers);
         setLoading(false);
+        setDataLoaded(true);
       });
 
       unsubMatches = subscribeToMatches((data) => {
@@ -199,6 +216,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         players,
         matches,
         loading,
+        initialLoadComplete,
         getPlayer,
         addPlayer,
         updatePlayer,

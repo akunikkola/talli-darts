@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useRef, useCallback, useEffect } from "react";
+import { useMemo, useState, useRef, useCallback } from "react";
 import { useData } from "@/context/DataContext";
 import type { Player } from "@/lib/supabase-data";
 import PlayerAvatar from "@/components/PlayerAvatar";
@@ -30,34 +30,16 @@ const getWeekStart = () => {
 };
 
 export default function Home() {
-  const { players, matches, loading, refreshData } = useData();
+  const { players, matches, initialLoadComplete, refreshData } = useData();
   const [rankingType, setRankingType] = useState<RankingType>("overall");
   const [matchFilter, setMatchFilter] = useState<MatchFilterType>("all");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
-  const [minTimeElapsed, setMinTimeElapsed] = useState(false);
-  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const touchStartY = useRef(0);
   const isPulling = useRef(false);
 
   const PULL_THRESHOLD = 80;
-  const MIN_LOADING_TIME = 1200; // 1.2 seconds minimum loading screen
-
-  // Ensure loading screen shows for at least MIN_LOADING_TIME
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setMinTimeElapsed(true);
-    }, MIN_LOADING_TIME);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Mark initial load as complete once data is loaded and min time has passed
-  useEffect(() => {
-    if (!loading && minTimeElapsed && !initialLoadComplete) {
-      setInitialLoadComplete(true);
-    }
-  }, [loading, minTimeElapsed, initialLoadComplete]);
 
   const handleRefresh = useCallback(async () => {
     if (isRefreshing) return;
