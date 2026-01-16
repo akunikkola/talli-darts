@@ -12,6 +12,7 @@ import type { Tournament } from "@/types/tournament";
 
 type RankingType = "overall" | "301" | "501";
 type MatchFilterType = "all" | "ranked" | "practice";
+type TournamentFilterType = "all" | "301" | "501";
 
 // Calculate average ELO from 301 and 501 ratings
 const getAverageElo = (player: { elo301: number; elo501: number }) => {
@@ -39,6 +40,7 @@ export default function Home() {
   const [pullDistance, setPullDistance] = useState(0);
   const [activeTournament, setActiveTournament] = useState<Tournament | null>(null);
   const [tournamentHistory, setTournamentHistory] = useState<Tournament[]>([]);
+  const [tournamentFilter, setTournamentFilter] = useState<TournamentFilterType>("all");
   const containerRef = useRef<HTMLDivElement>(null);
   const touchStartY = useRef(0);
   const isPulling = useRef(false);
@@ -159,6 +161,13 @@ export default function Home() {
     }
     return filtered.slice(0, 5);
   }, [matches, matchFilter]);
+
+  const filteredTournaments = useMemo(() => {
+    if (tournamentFilter === "all") {
+      return tournamentHistory;
+    }
+    return tournamentHistory.filter(t => t.gameMode === tournamentFilter);
+  }, [tournamentHistory, tournamentFilter]);
 
   // Get weekly highest checkouts - now includes both players' checkouts separately
   const weeklyCheckouts = useMemo(() => {
@@ -518,53 +527,90 @@ export default function Home() {
       </div>
 
       {/* Tournament History */}
-      {tournamentHistory.length > 0 && (
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-white font-semibold">Tournament History</h2>
-          </div>
-          <div className="bg-[#2a2a2a] rounded-xl overflow-hidden">
-            {tournamentHistory.map((tournament) => {
-              // Find winner name from bracket
-              const finalMatch = tournament.bracket?.find(
-                (m) => m.matchType === "regular" && m.winnerId === tournament.winnerId
-              );
-              const winnerName = finalMatch?.player1?.id === tournament.winnerId
-                ? finalMatch?.player1?.name
-                : finalMatch?.player2?.name;
-
-              return (
-                <Link
-                  key={tournament.id}
-                  href={`/play/tournament/${tournament.id}`}
-                  className="block px-4 py-3 border-b border-[#333] last:border-b-0 hover:bg-[#333] transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-white font-semibold">{tournament.name}</span>
-                      {winnerName && (
-                        <span className="text-[#4ade80] ml-2">
-                          {winnerName}
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-slate-500 text-sm">
-                      {tournament.playerCount} players
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
-                    <span>{tournament.format === "cup" ? "Cup" : "Round-Robin"}</span>
-                    <span>•</span>
-                    <span>{tournament.gameMode}</span>
-                    <span>•</span>
-                    <span>{new Date(tournament.completedAt || tournament.createdAt).toLocaleDateString()}</span>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-white font-semibold">Tournament History</h2>
         </div>
-      )}
+        {/* Tournament Filter Tabs */}
+        <div className="grid grid-cols-3 gap-2 bg-[#2a2a2a] rounded-xl p-1 mb-3">
+            <button
+              onClick={() => setTournamentFilter("all")}
+              className={`py-2 rounded-lg text-sm font-semibold transition-colors ${
+                tournamentFilter === "all"
+                  ? "bg-[#4ade80] text-black"
+                  : "text-white hover:bg-[#333]"
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setTournamentFilter("301")}
+              className={`py-2 rounded-lg text-sm font-semibold transition-colors ${
+                tournamentFilter === "301"
+                  ? "bg-[#4ade80] text-black"
+                  : "text-white hover:bg-[#333]"
+              }`}
+            >
+              301
+            </button>
+            <button
+              onClick={() => setTournamentFilter("501")}
+              className={`py-2 rounded-lg text-sm font-semibold transition-colors ${
+                tournamentFilter === "501"
+                  ? "bg-[#4ade80] text-black"
+                  : "text-white hover:bg-[#333]"
+              }`}
+            >
+              501
+            </button>
+          </div>
+        <div className="bg-[#2a2a2a] rounded-xl overflow-hidden">
+          {filteredTournaments.length === 0 ? (
+            <p className="text-slate-500 text-center py-4">
+              {tournamentFilter === "all" ? "No tournaments played yet" : `No ${tournamentFilter} tournaments yet`}
+            </p>
+          ) : (
+              filteredTournaments.map((tournament) => {
+                // Find winner name from bracket
+                const finalMatch = tournament.bracket?.find(
+                  (m) => m.matchType === "regular" && m.winnerId === tournament.winnerId
+                );
+                const winnerName = finalMatch?.player1?.id === tournament.winnerId
+                  ? finalMatch?.player1?.name
+                  : finalMatch?.player2?.name;
+
+                return (
+                  <Link
+                    key={tournament.id}
+                    href={`/play/tournament/${tournament.id}`}
+                    className="block px-4 py-3 border-b border-[#333] last:border-b-0 hover:bg-[#333] transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-white font-semibold">{tournament.name}</span>
+                        {winnerName && (
+                          <span className="text-[#4ade80] ml-2">
+                            {winnerName}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-slate-500 text-sm">
+                        {tournament.playerCount} players
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
+                      <span>{tournament.format === "cup" ? "Cup" : "Round-Robin"}</span>
+                      <span>•</span>
+                      <span>{tournament.gameMode}</span>
+                      <span>•</span>
+                      <span>{new Date(tournament.completedAt || tournament.createdAt).toLocaleDateString()}</span>
+                    </div>
+                  </Link>
+                );
+              })
+          )}
+        </div>
+      </div>
 
       {/* Weekly Highest Checkouts */}
       <div className="mb-6">
