@@ -6,6 +6,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { useData } from "@/context/DataContext";
 import type { Player, MatchResult } from "@/lib/supabase-data";
+import { fetchTournaments } from "@/lib/tournament-data";
+import type { Tournament } from "@/types/tournament";
 
 export default function PlayerProfile({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -20,6 +22,8 @@ export default function PlayerProfile({ params }: { params: Promise<{ id: string
   const [dartsModel, setDartsModel] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [tournamentFilter, setTournamentFilter] = useState<"all" | "301" | "501">("all");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -33,6 +37,11 @@ export default function PlayerProfile({ params }: { params: Promise<{ id: string
       setDartsModel(p.dartsModel || "");
     }
   }, [id, getPlayer, loading]);
+
+  // Fetch tournaments
+  useEffect(() => {
+    fetchTournaments().then(setTournaments);
+  }, []);
 
   // Get player's matches
   const playerMatches = useMemo(() => {
@@ -63,6 +72,92 @@ export default function PlayerProfile({ params }: { params: Promise<{ id: string
     if (!player || (player.wins + player.losses) === 0) return 0;
     return Math.round((player.wins / (player.wins + player.losses)) * 100);
   }, [player]);
+
+  // Calculate averages and visit stats from matches
+  const matchStats = useMemo(() => {
+    if (!player) return { avg: 0, first9Avg: 0, sixtyPlus: 0, eightyPlus: 0, hundredPlus: 0, matchCount: 0, dartsThrown: 0, doublesPercent: 0 };
+
+    let totalAvg = 0;
+    let totalFirst9Avg = 0;
+    let avgCount = 0;
+    let first9Count = 0;
+    let sixtyPlus = 0;
+    let eightyPlus = 0;
+    let hundredPlus = 0;
+    let dartsThrown = 0;
+    let doubleAttempts = 0;
+    let doubleHits = 0;
+
+    playerMatches.forEach(match => {
+      const isPlayer1 = match.player1Id === player.id;
+      const avg = isPlayer1 ? match.player1Avg : match.player2Avg;
+      const first9 = isPlayer1 ? match.player1First9Avg : match.player2First9Avg;
+      const sixty = isPlayer1 ? match.player1SixtyPlus : match.player2SixtyPlus;
+      const eighty = isPlayer1 ? match.player1EightyPlus : match.player2EightyPlus;
+      const hundred = isPlayer1 ? match.player1HundredPlus : match.player2HundredPlus;
+      const darts = isPlayer1 ? match.player1Darts : match.player2Darts;
+      const attempts = isPlayer1 ? match.player1DoubleAttempts : match.player2DoubleAttempts;
+      const hits = isPlayer1 ? match.player1DoubleHits : match.player2DoubleHits;
+
+      if (avg && avg > 0) {
+        totalAvg += avg;
+        avgCount++;
+      }
+      if (first9 && first9 > 0) {
+        totalFirst9Avg += first9;
+        first9Count++;
+      }
+      sixtyPlus += sixty || 0;
+      eightyPlus += eighty || 0;
+      hundredPlus += hundred || 0;
+      dartsThrown += darts || 0;
+      doubleAttempts += attempts || 0;
+      doubleHits += hits || 0;
+    });
+
+    return {
+      avg: avgCount > 0 ? totalAvg / avgCount : 0,
+      first9Avg: first9Count > 0 ? totalFirst9Avg / first9Count : 0,
+      sixtyPlus,
+      eightyPlus,
+      hundredPlus,
+      matchCount: playerMatches.length,
+      dartsThrown,
+      doublesPercent: doubleAttempts > 0 ? (doubleHits / doubleAttempts) * 100 : 0,
+    };
+  }, [player, playerMatches]);
+
+  // Get player's tournament history
+  const playerTournaments = useMemo(() => {
+    if (!player) return [];
+    return tournaments.filter(t => {
+      // Check if player is in bracket
+      const inBracket = t.bracket?.some(m =>
+        m.player1?.id === player.id || m.player2?.id === player.id
+      );
+      // Check if player is in groups
+      const inGroups = t.groups?.some(g =>
+        g.players.some(p => p.id === player.id)
+      );
+      return inBracket || inGroups;
+    });
+  }, [player, tournaments]);
+
+  // Filter tournaments by game mode
+  const filteredTournaments = useMemo(() => {
+    if (tournamentFilter === "all") return playerTournaments;
+    return playerTournaments.filter(t => t.gameMode === tournamentFilter);
+  }, [playerTournaments, tournamentFilter]);
+
+  // Calculate tournament trophies
+  const trophies = useMemo(() => {
+    if (!player) return { gold: 0, silver: 0, bronze: 0 };
+    return {
+      gold: tournaments.filter(t => t.winnerId === player.id).length,
+      silver: tournaments.filter(t => t.secondPlaceId === player.id).length,
+      bronze: tournaments.filter(t => t.thirdPlaceId === player.id).length,
+    };
+  }, [player, tournaments]);
 
   const handleSave = async () => {
     if (!player || !name.trim()) return;
@@ -316,11 +411,72 @@ export default function PlayerProfile({ params }: { params: Promise<{ id: string
               <span className="text-white font-semibold">{player.legsLost}</span>
             </div>
           </div>
+
+          {/* Divider */}
+          <div className="border-t border-[#333] my-4" />
+
+          {/* Averages & Visits */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex justify-between items-center">
+              <span className="text-slate-400 text-sm">Avg</span>
+              <span className="text-white font-semibold">{matchStats.avg > 0 ? matchStats.avg.toFixed(1) : "-"}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-400 text-sm">First 9 Avg</span>
+              <span className="text-white font-semibold">{matchStats.first9Avg > 0 ? matchStats.first9Avg.toFixed(1) : "-"}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-400 text-sm">Doubles%</span>
+              <span className="text-white font-semibold">{matchStats.doublesPercent > 0 ? matchStats.doublesPercent.toFixed(1) + "%" : "-"}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-400 text-sm">Darts</span>
+              <span className="text-white font-semibold">{matchStats.dartsThrown || "-"}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-400 text-sm">100+</span>
+              <span className="text-white font-semibold">{matchStats.hundredPlus || "-"}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-400 text-sm">80+</span>
+              <span className="text-white font-semibold">{matchStats.eightyPlus || "-"}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-400 text-sm">60+</span>
+              <span className="text-white font-semibold">{matchStats.sixtyPlus || "-"}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-400 text-sm">Matches</span>
+              <span className="text-white font-semibold">{matchStats.matchCount}</span>
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="border-t border-[#333] my-4" />
+
+          {/* Trophies */}
+          <div className="flex justify-around items-center">
+            <div className="text-center">
+              <div className="text-2xl">🥇</div>
+              <p className="text-white font-bold text-lg">{trophies.gold}</p>
+              <p className="text-slate-500 text-xs">1st</p>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl">🥈</div>
+              <p className="text-white font-bold text-lg">{trophies.silver}</p>
+              <p className="text-slate-500 text-xs">2nd</p>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl">🥉</div>
+              <p className="text-white font-bold text-lg">{trophies.bronze}</p>
+              <p className="text-slate-500 text-xs">3rd</p>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Match History */}
-      <div className="px-4 pb-6">
+      <div className="px-4 pb-4">
         <h3 className="text-white font-semibold mb-3">Match History</h3>
         {playerMatches.length === 0 ? (
           <div className="bg-[#2a2a2a] rounded-xl p-6 text-center">
@@ -343,7 +499,7 @@ export default function PlayerProfile({ params }: { params: Promise<{ id: string
                   className="block bg-[#2a2a2a] rounded-xl p-3 hover:bg-[#333] transition-colors"
                 >
                   <div className="flex items-center">
-                    <div className="w-20 text-slate-500 text-xs">
+                    <div className="w-20 text-slate-500 text-xs" suppressHydrationWarning>
                       {formatDateTime(match)}
                     </div>
                     <div className="flex-1 flex items-center gap-2">
@@ -380,6 +536,83 @@ export default function PlayerProfile({ params }: { params: Promise<{ id: string
                         </span>
                       </>
                     )}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Tournament History */}
+      <div className="px-4 pb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-white font-semibold">Tournament History</h3>
+          {playerTournaments.length > 0 && (
+            <div className="flex gap-1 bg-[#2a2a2a] rounded-lg p-1">
+              {(["all", "301", "501"] as const).map((filter) => (
+                <button
+                  key={filter}
+                  onClick={() => setTournamentFilter(filter)}
+                  className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                    tournamentFilter === filter
+                      ? "bg-[#4ade80] text-black"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  {filter === "all" ? "All" : filter}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        {filteredTournaments.length === 0 ? (
+          <div className="bg-[#2a2a2a] rounded-xl p-6 text-center">
+            <p className="text-slate-500">
+              {playerTournaments.length === 0
+                ? "No tournaments played yet"
+                : `No ${tournamentFilter} tournaments`}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {filteredTournaments.map((tournament) => {
+              const isWinner = tournament.winnerId === player.id;
+              const isSecond = tournament.secondPlaceId === player.id;
+              const isThird = tournament.thirdPlaceId === player.id;
+              const placement = isWinner ? "1st" : isSecond ? "2nd" : isThird ? "3rd" : "-";
+              const trophy = isWinner ? "🥇" : isSecond ? "🥈" : isThird ? "🥉" : "";
+
+              return (
+                <Link
+                  key={tournament.id}
+                  href={`/play/tournament/${tournament.id}`}
+                  className="block bg-[#2a2a2a] rounded-xl p-3 hover:bg-[#333] transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-white font-medium">{tournament.name}</span>
+                        {trophy && <span>{trophy}</span>}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs text-slate-500">{tournament.gameMode}</span>
+                        <span className="text-xs text-slate-600">•</span>
+                        <span className="text-xs text-slate-500 capitalize">{tournament.format.replace("_", "-")}</span>
+                        <span className="text-xs text-slate-600">•</span>
+                        <span className="text-xs text-slate-500">{tournament.playerCount} players</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className={`text-sm font-bold ${
+                        isWinner ? "text-[#f5a623]" : isSecond ? "text-slate-300" : isThird ? "text-[#cd7f32]" : "text-slate-500"
+                      }`}>
+                        {placement}
+                      </span>
+                      <p className="text-xs text-slate-500 mt-1">
+                        {tournament.status === "completed" ? "Completed" : "In Progress"}
+                      </p>
+                    </div>
                   </div>
                 </Link>
               );
