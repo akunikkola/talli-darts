@@ -139,6 +139,41 @@ function GameContent() {
     }
   }, [game?.currentPlayerIndex, game?.players.length]);
 
+  // Keep screen on during game using Wake Lock API
+  useEffect(() => {
+    let wakeLock: WakeLockSentinel | null = null;
+
+    const requestWakeLock = async () => {
+      try {
+        if ("wakeLock" in navigator) {
+          wakeLock = await navigator.wakeLock.request("screen");
+        }
+      } catch (err) {
+        // Wake lock request failed (e.g., low battery, or not supported)
+        console.log("Wake lock not available:", err);
+      }
+    };
+
+    // Request wake lock on mount
+    requestWakeLock();
+
+    // Re-acquire wake lock when page becomes visible again
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        requestWakeLock();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    // Cleanup: release wake lock on unmount
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (wakeLock) {
+        wakeLock.release();
+      }
+    };
+  }, []);
+
   useEffect(() => {
     // Only initialize the game once - don't re-run when player data updates
     if (dataLoading || game) return;
