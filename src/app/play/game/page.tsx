@@ -655,7 +655,9 @@ function GameContent() {
   };
 
   const submitScore = (scoreValue: number, doubleAttempts?: number, doubleHits?: number) => {
-    if (game.gameOver || game.pendingLegWin || pendingDoubleAttempts) return;
+    // Only block for pendingDoubleAttempts if we're NOT being called from confirmDoubleAttempts
+    // (when doubleAttempts is provided, we're coming from the popup confirmation)
+    if (game.gameOver || game.pendingLegWin || (pendingDoubleAttempts && doubleAttempts === undefined)) return;
 
     const remaining = currentPlayer.remaining;
     const newRemaining = remaining - scoreValue;
