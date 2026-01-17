@@ -509,12 +509,19 @@ export async function resetAllPlayersStats(): Promise<boolean> {
 export async function initializeDefaultPlayers(): Promise<void> {
   const supabase = createClient();
 
-  // Check if any Talli players exist (more specific check to avoid duplicates)
-  const { data: existing } = await supabase
+  // Check if any players exist at all (not just talli group)
+  // This prevents creating duplicates if the query somehow fails
+  const { data: existing, error } = await supabase
     .from('players')
-    .select('name')
-    .eq('group', 'talli')
+    .select('id')
     .limit(1);
+
+  // If there's an error OR if any players exist, don't create defaults
+  // This is a safety measure to prevent duplicates
+  if (error) {
+    console.error('Error checking for existing players:', error);
+    return; // Don't create players if we can't verify the current state
+  }
   if (existing && existing.length > 0) {
     return; // Players already initialized
   }
