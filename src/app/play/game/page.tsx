@@ -1226,7 +1226,9 @@ function GameContent() {
       }
     }
 
-    setGame((prev) => prev ? { ...prev, currentDarts: newDarts } : null);
+    // Auto-switch back to single after throwing with treble
+    const newMultiplier = multiplier === "treble" ? "single" : game.selectedMultiplier;
+    setGame((prev) => prev ? { ...prev, currentDarts: newDarts, selectedMultiplier: newMultiplier } : null);
   };
 
   const handleDartMiss = () => {
@@ -1998,7 +2000,7 @@ function GameContent() {
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
             </svg>
-            <span className="text-sm font-medium">Round</span>
+            <span className="text-sm font-medium">Visit</span>
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
@@ -2008,7 +2010,7 @@ function GameContent() {
             onClick={() => setShowThrowsHistory(true)}
             className="flex-1 py-2 bg-[#2a2a2a] hover:bg-[#333] text-slate-400 hover:text-white rounded-lg text-sm font-medium transition-colors"
           >
-            All throws
+            Edit score
           </button>
           {/* Bust */}
           <button
@@ -2034,11 +2036,11 @@ function GameContent() {
             26 <span className="text-slate-400 text-xs">Hamina</span>
           </button>
           <button
-            onClick={() => handleQuickScore(29)}
+            onClick={() => handleQuickScore(0)}
             disabled={game.gameOver || !!game.pendingLegWin}
-            className="flex-1 py-1.5 bg-[#2a2a2a] hover:bg-[#333] disabled:opacity-50 text-white rounded-lg font-medium"
+            className="flex-1 py-1.5 bg-[#e85d3b] hover:bg-[#d14d2b] disabled:opacity-50 text-white rounded-lg font-bold"
           >
-            29 <span className="text-slate-400 text-xs">Hanko</span>
+            Miss
           </button>
           <button
             onClick={() => handleQuickScore(180)}
@@ -2079,7 +2081,7 @@ function GameContent() {
             onClick={() => setShowThrowsHistory(true)}
             className="flex-1 py-2 bg-[#2a2a2a] hover:bg-[#333] text-slate-400 hover:text-white rounded-lg text-sm font-medium transition-colors"
           >
-            All throws
+            Edit score
           </button>
         </div>
       </div>
@@ -2179,7 +2181,7 @@ function GameContent() {
                   : "bg-[#2a2a2a] text-slate-400 hover:text-white"
               }`}
             >
-              {mult.charAt(0).toUpperCase()}
+              {mult === "single" ? "Single" : mult === "double" ? "Double" : "Triple"}
             </button>
           ))}
           {/* Bull (50) - direct score button */}
