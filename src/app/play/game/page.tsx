@@ -1226,8 +1226,8 @@ function GameContent() {
       }
     }
 
-    // Auto-switch back to single after throwing with treble
-    const newMultiplier = multiplier === "treble" ? "single" : game.selectedMultiplier;
+    // Auto-switch back to single after throwing with double or treble
+    const newMultiplier = (multiplier === "double" || multiplier === "treble") ? "single" : game.selectedMultiplier;
     setGame((prev) => prev ? { ...prev, currentDarts: newDarts, selectedMultiplier: newMultiplier } : null);
   };
 
