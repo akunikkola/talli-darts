@@ -1921,13 +1921,6 @@ function GameContent() {
         )}
       </div>
 
-      {/* Turn Indicator */}
-      <div className="px-4 mb-2">
-        <p className="text-[#4ade80] font-bold text-lg uppercase tracking-wide">
-          {currentPlayer.name}&apos;s turn!
-        </p>
-      </div>
-
       {/* Checkout Hint */}
       {checkout && (
         <div className="px-4 mb-2">
@@ -1988,7 +1981,7 @@ function GameContent() {
         </div>
       )}
 
-      {/* Round Mode: Row 1 - Mode Toggle, All Throws, Bust */}
+      {/* Round Mode: Top Row - Mode Toggle, Edit score, Hamina, 180 */}
       {game.inputMode === "round" && (
       <div className="px-4 mb-2">
         <div className="flex gap-2">
@@ -2005,47 +1998,26 @@ function GameContent() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </button>
-          {/* All Throws */}
+          {/* Edit score */}
           <button
             onClick={() => setShowThrowsHistory(true)}
             className="flex-1 py-2 bg-[#2a2a2a] hover:bg-[#333] text-slate-400 hover:text-white rounded-lg text-sm font-medium transition-colors"
           >
             Edit score
           </button>
-          {/* Bust */}
-          <button
-            onClick={() => handleBust()}
-            disabled={game.gameOver || !!game.pendingLegWin}
-            className="flex-1 py-2 bg-[#e85d3b] hover:bg-[#d14d2b] disabled:opacity-50 text-white rounded-lg text-sm font-bold"
-          >
-            Bust
-          </button>
-        </div>
-      </div>
-      )}
-
-      {/* Round Mode: Row 2 - Hamina, Hanko, 180 */}
-      {game.inputMode === "round" && (
-      <div className="px-4 mb-2">
-        <div className="flex gap-2">
+          {/* Hamina */}
           <button
             onClick={() => handleQuickScore(26)}
             disabled={game.gameOver || !!game.pendingLegWin}
-            className="flex-1 py-1.5 bg-[#2a2a2a] hover:bg-[#333] disabled:opacity-50 text-white rounded-lg font-medium"
+            className="py-2 px-3 bg-[#2a2a2a] hover:bg-[#333] disabled:opacity-50 text-white rounded-lg text-sm font-medium"
           >
-            26 <span className="text-slate-400 text-xs">Hamina</span>
+            26
           </button>
-          <button
-            onClick={() => handleQuickScore(0)}
-            disabled={game.gameOver || !!game.pendingLegWin}
-            className="flex-1 py-1.5 bg-[#e85d3b] hover:bg-[#d14d2b] disabled:opacity-50 text-white rounded-lg font-bold"
-          >
-            Miss
-          </button>
+          {/* 180 */}
           <button
             onClick={() => handleQuickScore(180)}
             disabled={game.gameOver || !!game.pendingLegWin}
-            className="flex-1 py-1.5 bg-[#f5a623] hover:bg-[#d98f1e] disabled:opacity-50 text-black rounded-lg font-bold"
+            className="py-2 px-3 bg-[#2a2a2a] hover:bg-[#333] disabled:opacity-50 text-white rounded-lg text-sm font-bold"
           >
             180
           </button>
@@ -2098,38 +2070,58 @@ function GameContent() {
       </div>
       )}
 
-      {/* Round Mode: Number Pad */}
+      {/* Round Mode: Number Pad with Miss/Bust on right */}
       {game.inputMode === "round" && (
       <div className="flex-1 min-h-0 px-4 pb-4">
-        <div className="grid grid-cols-3 gap-2 h-full">
-          {["1", "2", "3", "4", "5", "6", "7", "8", "9", "clear", "0", "submit"].map((key) => (
+        <div className="flex gap-2 h-full">
+          {/* Number Pad */}
+          <div className="flex-1 grid grid-cols-3 gap-2">
+            {["1", "2", "3", "4", "5", "6", "7", "8", "9", "clear", "0", "submit"].map((key) => (
+              <button
+                key={key}
+                onClick={() => {
+                  if (key === "clear") {
+                    setGame((prev) => prev ? { ...prev, currentScore: "" } : null);
+                  } else {
+                    handleNumberPad(key);
+                  }
+                }}
+                disabled={game.gameOver || !!game.pendingLegWin || (key === "submit" && !game.currentScore)}
+                className={`${
+                  key === "submit"
+                    ? "bg-[#4ade80] hover:bg-[#22c55e] text-black"
+                    : "bg-[#2a2a2a] hover:bg-[#333] active:bg-[#4ade80] active:text-black text-white"
+                } rounded-xl flex items-center justify-center text-3xl font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                {key === "clear" ? (
+                  <span className="text-2xl font-bold">C</span>
+                ) : key === "submit" ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  key
+                )}
+              </button>
+            ))}
+          </div>
+          {/* Miss and Bust buttons on the right */}
+          <div className="w-20 flex flex-col gap-2">
             <button
-              key={key}
-              onClick={() => {
-                if (key === "clear") {
-                  setGame((prev) => prev ? { ...prev, currentScore: "" } : null);
-                } else {
-                  handleNumberPad(key);
-                }
-              }}
-              disabled={game.gameOver || !!game.pendingLegWin || (key === "submit" && !game.currentScore)}
-              className={`${
-                key === "submit"
-                  ? "bg-[#4ade80] hover:bg-[#22c55e] text-black"
-                  : "bg-[#2a2a2a] hover:bg-[#333] active:bg-[#4ade80] active:text-black text-white"
-              } rounded-lg flex items-center justify-center text-2xl font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+              onClick={() => handleQuickScore(0)}
+              disabled={game.gameOver || !!game.pendingLegWin}
+              className="flex-1 bg-[#e85d3b] hover:bg-[#d14d2b] disabled:opacity-50 text-white rounded-xl font-bold text-lg"
             >
-              {key === "clear" ? (
-                <span className="text-xl font-bold">C</span>
-              ) : key === "submit" ? (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              ) : (
-                key
-              )}
+              Miss
             </button>
-          ))}
+            <button
+              onClick={() => handleBust()}
+              disabled={game.gameOver || !!game.pendingLegWin}
+              className="flex-1 bg-[#f5a623] hover:bg-[#d98f1e] disabled:opacity-50 text-black rounded-xl font-bold text-lg"
+            >
+              Bust
+            </button>
+          </div>
         </div>
       </div>
       )}
