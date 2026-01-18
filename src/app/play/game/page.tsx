@@ -402,10 +402,32 @@ function GameContent() {
     const hasTestPlayer = isTestPlayer(winner.name) || isTestPlayer(loser.name);
 
     // Get stored players to access their current ELO values
-    const winnerStored = getPlayer(winner.id);
-    const loserStored = getPlayer(loser.id);
+    // First try from memory, then fallback to database fetch
+    let winnerStored = getPlayer(winner.id);
+    let loserStored = getPlayer(loser.id);
 
-    if (!winnerStored || !loserStored) return;
+    // If not found in memory, try fetching directly from database
+    if (!winnerStored) {
+      console.warn(`Winner ${winner.name} (${winner.id}) not found in memory, fetching from database...`);
+      winnerStored = await fetchPlayer(winner.id);
+    }
+    if (!loserStored) {
+      console.warn(`Loser ${loser.name} (${loser.id}) not found in memory, fetching from database...`);
+      loserStored = await fetchPlayer(loser.id);
+    }
+
+    if (!winnerStored || !loserStored) {
+      console.error('CRITICAL: Could not find player data for match save!', {
+        winnerId: winner.id,
+        winnerName: winner.name,
+        winnerFound: !!winnerStored,
+        loserId: loser.id,
+        loserName: loser.name,
+        loserFound: !!loserStored,
+      });
+      alert(`Error: Could not save match! Player data not found. Please try refreshing the app.`);
+      return;
+    }
 
     // Calculate game-specific ELO changes (301 or 501) - but don't apply if test player
     const gameEloResult = hasTestPlayer
@@ -530,6 +552,7 @@ function GameContent() {
 
     if (!savedMatch) {
       console.error('Failed to save match to database');
+      alert('Warning: Match may not have been saved! Please check match history and contact admin if missing.');
     } else {
       console.log('Match saved successfully:', savedMatch.id);
     }
@@ -578,7 +601,7 @@ function GameContent() {
 
     if (playerCount === 2) {
       // Standard 2-player practice match
-      await saveMatch({
+      const savedMatch = await saveMatch({
         player1Id: game.players[0].id,
         player2Id: game.players[1].id,
         player1Name: game.players[0].name,
@@ -618,10 +641,14 @@ function GameContent() {
         player1First9Avg: getFirst9Average(game.players[0]),
         player2First9Avg: getFirst9Average(game.players[1]),
       });
+      if (!savedMatch) {
+        console.error('Failed to save practice match to database');
+        alert('Warning: Match may not have been saved! Please check match history.');
+      }
     } else {
       // Multi-player match (3+ players) - store all player names
       const otherPlayers = game.players.filter((_, i) => i !== winnerIndex);
-      await saveMatch({
+      const savedMatch = await saveMatch({
         player1Id: winner.id,
         player2Id: otherPlayers[0].id,
         player1Name: winner.name,
@@ -662,6 +689,10 @@ function GameContent() {
         player1First9Avg: getFirst9Average(winner, true),
         player2First9Avg: 0,
       });
+      if (!savedMatch) {
+        console.error('Failed to save multi-player match to database');
+        alert('Warning: Match may not have been saved! Please check match history.');
+      }
     }
 
     setGame((prev) => prev ? { ...prev, matchSaved: true } : null);
