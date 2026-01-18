@@ -574,9 +574,9 @@ export async function initializeDefaultPlayers(): Promise<void> {
     })),
   ];
 
-  const { error } = await supabase.from('players').insert(allPlayers);
-  if (error) {
-    console.error('Error initializing default players:', error);
+  const { error: insertError } = await supabase.from('players').insert(allPlayers);
+  if (insertError) {
+    console.error('Error initializing default players:', insertError);
   }
 }
 
