@@ -409,11 +409,11 @@ function GameContent() {
     // If not found in memory, try fetching directly from database
     if (!winnerStored) {
       console.warn(`Winner ${winner.name} (${winner.id}) not found in memory, fetching from database...`);
-      winnerStored = await fetchPlayer(winner.id);
+      winnerStored = await fetchPlayer(winner.id) ?? undefined;
     }
     if (!loserStored) {
       console.warn(`Loser ${loser.name} (${loser.id}) not found in memory, fetching from database...`);
-      loserStored = await fetchPlayer(loser.id);
+      loserStored = await fetchPlayer(loser.id) ?? undefined;
     }
 
     if (!winnerStored || !loserStored) {
