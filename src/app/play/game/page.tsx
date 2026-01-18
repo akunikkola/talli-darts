@@ -1981,14 +1981,15 @@ function GameContent() {
         </div>
       )}
 
-      {/* Round Mode: Top Row - Mode Toggle, Edit score, Hamina, 180 */}
+      {/* Round Mode: Top Rows - Row 1: Mode Toggle, Edit score, Bust | Row 2: Hamina, 180, Miss */}
       {game.inputMode === "round" && (
-      <div className="px-4 mb-2">
+      <div className="px-4 mb-2 space-y-2">
+        {/* Row 1: Visit, Edit score, Bust */}
         <div className="flex gap-2">
           {/* Mode Toggle */}
           <button
             onClick={() => setShowModeSelector(true)}
-            className="flex items-center gap-2 bg-[#2a2a2a] hover:bg-[#333] px-3 py-2 rounded-lg text-slate-400 hover:text-white transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 bg-[#2a2a2a] hover:bg-[#333] px-3 py-2 rounded-lg text-slate-400 hover:text-white transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
@@ -2005,21 +2006,40 @@ function GameContent() {
           >
             Edit score
           </button>
+          {/* Bust - Yellow */}
+          <button
+            onClick={() => handleBust()}
+            disabled={game.gameOver || !!game.pendingLegWin}
+            className="flex-1 py-2 bg-[#f5a623] hover:bg-[#d98f1e] disabled:opacity-50 text-white rounded-lg text-sm font-bold transition-colors"
+          >
+            Bust
+          </button>
+        </div>
+        {/* Row 2: 26 Hamina, 180, Miss */}
+        <div className="flex gap-2">
           {/* Hamina */}
           <button
             onClick={() => handleQuickScore(26)}
             disabled={game.gameOver || !!game.pendingLegWin}
-            className="py-2 px-3 bg-[#2a2a2a] hover:bg-[#333] disabled:opacity-50 text-white rounded-lg text-sm font-medium"
+            className="flex-1 py-2 bg-[#2a2a2a] hover:bg-[#333] disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
           >
-            26
+            <span className="font-bold">26</span> <span className="text-slate-400 text-xs">Hamina</span>
           </button>
           {/* 180 */}
           <button
             onClick={() => handleQuickScore(180)}
             disabled={game.gameOver || !!game.pendingLegWin}
-            className="py-2 px-3 bg-[#2a2a2a] hover:bg-[#333] disabled:opacity-50 text-white rounded-lg text-sm font-bold"
+            className="flex-1 py-2 bg-[#2a2a2a] hover:bg-[#333] disabled:opacity-50 text-white rounded-lg text-sm font-bold transition-colors"
           >
             180
+          </button>
+          {/* Miss - Orange */}
+          <button
+            onClick={() => handleQuickScore(0)}
+            disabled={game.gameOver || !!game.pendingLegWin}
+            className="flex-1 py-2 bg-[#e85d3b] hover:bg-[#d14d2b] disabled:opacity-50 text-white rounded-lg text-sm font-bold transition-colors"
+          >
+            Miss
           </button>
         </div>
       </div>
@@ -2070,58 +2090,38 @@ function GameContent() {
       </div>
       )}
 
-      {/* Round Mode: Number Pad with Miss/Bust on right */}
+      {/* Round Mode: Number Pad */}
       {game.inputMode === "round" && (
       <div className="flex-1 min-h-0 px-4 pb-4">
-        <div className="flex gap-2 h-full">
-          {/* Number Pad */}
-          <div className="flex-1 grid grid-cols-3 gap-2">
-            {["1", "2", "3", "4", "5", "6", "7", "8", "9", "clear", "0", "submit"].map((key) => (
-              <button
-                key={key}
-                onClick={() => {
-                  if (key === "clear") {
-                    setGame((prev) => prev ? { ...prev, currentScore: "" } : null);
-                  } else {
-                    handleNumberPad(key);
-                  }
-                }}
-                disabled={game.gameOver || !!game.pendingLegWin || (key === "submit" && !game.currentScore)}
-                className={`${
-                  key === "submit"
-                    ? "bg-[#4ade80] hover:bg-[#22c55e] text-black"
-                    : "bg-[#2a2a2a] hover:bg-[#333] active:bg-[#4ade80] active:text-black text-white"
-                } rounded-xl flex items-center justify-center text-3xl font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
-              >
-                {key === "clear" ? (
-                  <span className="text-2xl font-bold">C</span>
-                ) : key === "submit" ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                ) : (
-                  key
-                )}
-              </button>
-            ))}
-          </div>
-          {/* Miss and Bust buttons on the right */}
-          <div className="w-20 flex flex-col gap-2">
+        <div className="grid grid-cols-3 gap-2 h-full">
+          {["1", "2", "3", "4", "5", "6", "7", "8", "9", "clear", "0", "submit"].map((key) => (
             <button
-              onClick={() => handleQuickScore(0)}
-              disabled={game.gameOver || !!game.pendingLegWin}
-              className="flex-1 bg-[#e85d3b] hover:bg-[#d14d2b] disabled:opacity-50 text-white rounded-xl font-bold text-lg"
+              key={key}
+              onClick={() => {
+                if (key === "clear") {
+                  setGame((prev) => prev ? { ...prev, currentScore: "" } : null);
+                } else {
+                  handleNumberPad(key);
+                }
+              }}
+              disabled={game.gameOver || !!game.pendingLegWin || (key === "submit" && !game.currentScore)}
+              className={`${
+                key === "submit"
+                  ? "bg-[#4ade80] hover:bg-[#22c55e] text-black"
+                  : "bg-[#2a2a2a] hover:bg-[#333] active:bg-[#4ade80] active:text-black text-white"
+              } rounded-xl flex items-center justify-center text-3xl font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
             >
-              Miss
+              {key === "clear" ? (
+                <span className="text-2xl font-bold">C</span>
+              ) : key === "submit" ? (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                key
+              )}
             </button>
-            <button
-              onClick={() => handleBust()}
-              disabled={game.gameOver || !!game.pendingLegWin}
-              className="flex-1 bg-[#f5a623] hover:bg-[#d98f1e] disabled:opacity-50 text-black rounded-xl font-bold text-lg"
-            >
-              Bust
-            </button>
-          </div>
+          ))}
         </div>
       </div>
       )}
@@ -2156,14 +2156,14 @@ function GameContent() {
 
       {/* Dart Mode: Multiplier Selector */}
       {game.inputMode === "dart" && (
-      <div className="px-4 mb-1">
+      <div className="px-4 mb-2">
         <div className="flex gap-1">
           {(["single", "double", "treble"] as DartMultiplier[]).map((mult) => (
             <button
               key={mult}
               onClick={() => handleMultiplierSelect(mult)}
               disabled={game.gameOver || !!game.pendingLegWin}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-bold uppercase transition-colors ${
+              className={`flex-1 py-3 rounded-lg text-sm font-bold uppercase transition-colors ${
                 game.selectedMultiplier === mult
                   ? mult === "double"
                     ? "bg-blue-500 text-white"
@@ -2180,7 +2180,7 @@ function GameContent() {
           <button
             onClick={() => handleDartInput(50)}
             disabled={game.gameOver || !!game.pendingLegWin || game.currentDarts.length >= 3}
-            className="flex-1 py-1.5 rounded-lg text-xs font-bold uppercase transition-colors bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white"
+            className="flex-1 py-3 rounded-lg text-sm font-bold uppercase transition-colors bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white"
           >
             Bull
           </button>
@@ -2188,7 +2188,7 @@ function GameContent() {
           <button
             onClick={() => handleDartInput(25)}
             disabled={game.gameOver || !!game.pendingLegWin || game.currentDarts.length >= 3}
-            className="flex-1 py-1.5 rounded-lg text-xs font-bold uppercase transition-colors bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white"
+            className="flex-1 py-3 rounded-lg text-sm font-bold uppercase transition-colors bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white"
           >
             25
           </button>
@@ -2198,8 +2198,8 @@ function GameContent() {
 
       {/* Dart Mode: Number Grid */}
       {game.inputMode === "dart" && (
-      <div className="px-4 mb-1 flex-1 min-h-0">
-        <div className="grid grid-cols-5 gap-1 h-full">
+      <div className="px-4 mb-1">
+        <div className="grid grid-cols-5 gap-1">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].map((num) => {
             const score = getDartScore(game.selectedMultiplier, num);
             const wouldBust = currentPlayer.remaining - getCurrentDartsTotal() - score < 0 ||
@@ -2213,13 +2213,16 @@ function GameContent() {
                 key={num}
                 onClick={() => handleDartInput(num)}
                 disabled={isDisabled}
-                className={`rounded-lg text-lg font-bold transition-colors ${
+                className={`aspect-square rounded-lg transition-colors flex items-center justify-center gap-0.5 ${
                   isDisabled
                     ? "bg-[#1a1a1a] text-slate-600 cursor-not-allowed"
                     : "bg-[#2a2a2a] text-white hover:bg-[#333] active:bg-[#4ade80] active:text-black"
                 }`}
               >
-                {num}
+                <span className="text-lg font-bold">{num}</span>
+                {game.selectedMultiplier !== "single" && (
+                  <span className={`text-xs ${isDisabled ? "text-slate-700" : "text-slate-400"}`}>{score}</span>
+                )}
               </button>
             );
           })}
