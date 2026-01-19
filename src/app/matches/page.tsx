@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useData } from "@/context/DataContext";
 import type { MatchResult, Player } from "@/lib/supabase-data";
 
@@ -24,7 +24,84 @@ export default function Matches() {
   const [newGameMode, setNewGameMode] = useState<"301" | "501" | "cricket">("501");
   const [newIsRanked, setNewIsRanked] = useState(false);
 
+  // Filter states
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterGameMode, setFilterGameMode] = useState<"all" | "301" | "501" | "cricket">("all");
+  const [filterMatchType, setFilterMatchType] = useState<"all" | "ranked" | "practice">("all");
+  const [filterTournament, setFilterTournament] = useState<"all" | "tournament" | "regular">("all");
+  const [filterPlayer, setFilterPlayer] = useState<string>("");
+  const [filterDateRange, setFilterDateRange] = useState<"all" | "today" | "week" | "month">("all");
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
+
   const sortedPlayers = [...players].sort((a, b) => a.name.localeCompare(b.name));
+
+  // Filtering logic
+  const filteredMatches = useMemo(() => {
+    let result = [...matches];
+
+    // Game mode filter
+    if (filterGameMode !== "all") {
+      result = result.filter(m => m.gameMode === filterGameMode);
+    }
+
+    // Match type filter
+    if (filterMatchType === "ranked") {
+      result = result.filter(m => m.isRanked);
+    } else if (filterMatchType === "practice") {
+      result = result.filter(m => !m.isRanked);
+    }
+
+    // Tournament filter
+    if (filterTournament === "tournament") {
+      result = result.filter(m => m.tournamentId);
+    } else if (filterTournament === "regular") {
+      result = result.filter(m => !m.tournamentId);
+    }
+
+    // Player filter
+    if (filterPlayer) {
+      result = result.filter(m =>
+        m.player1Id === filterPlayer || m.player2Id === filterPlayer
+      );
+    }
+
+    // Date range filter
+    if (filterDateRange !== "all") {
+      const now = new Date();
+      const cutoff = new Date();
+      if (filterDateRange === "today") {
+        cutoff.setHours(0, 0, 0, 0);
+      } else if (filterDateRange === "week") {
+        cutoff.setDate(now.getDate() - 7);
+      } else if (filterDateRange === "month") {
+        cutoff.setMonth(now.getMonth() - 1);
+      }
+      result = result.filter(m => new Date(m.playedAt) >= cutoff);
+    }
+
+    // Sorting
+    result.sort((a, b) => {
+      const dateA = new Date(a.playedAt).getTime();
+      const dateB = new Date(b.playedAt).getTime();
+      return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
+    });
+
+    return result;
+  }, [matches, filterGameMode, filterMatchType, filterTournament, filterPlayer, filterDateRange, sortOrder]);
+
+  // Check if any filters are active
+  const hasActiveFilters = filterGameMode !== "all" || filterMatchType !== "all" ||
+    filterTournament !== "all" || filterPlayer !== "" || filterDateRange !== "all";
+
+  // Clear all filters
+  const clearFilters = () => {
+    setFilterGameMode("all");
+    setFilterMatchType("all");
+    setFilterTournament("all");
+    setFilterPlayer("");
+    setFilterDateRange("all");
+    setSortOrder("newest");
+  };
 
   if (loading) {
     return (
@@ -158,17 +235,201 @@ export default function Matches() {
         </button>
       </div>
 
+      {/* Filter Section */}
+      <div className="px-4 mb-3">
+        {/* Filter Toggle */}
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className="w-full flex items-center justify-between bg-[#2a2a2a] rounded-xl px-4 py-3"
+        >
+          <div className="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+            <span className="text-white font-medium">Filters</span>
+            {hasActiveFilters && (
+              <span className="bg-[#4ade80] text-black text-xs px-2 py-0.5 rounded-full font-semibold">
+                Active
+              </span>
+            )}
+          </div>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className={`h-5 w-5 text-slate-400 transition-transform ${showFilters ? "rotate-180" : ""}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        {/* Collapsible Filter Panel */}
+        {showFilters && (
+          <div className="mt-2 bg-[#2a2a2a] rounded-xl p-4 space-y-4">
+            {/* Game Mode */}
+            <div>
+              <label className="block text-slate-400 text-sm mb-2">Game Mode</label>
+              <div className="grid grid-cols-4 gap-1 bg-[#1a1a1a] rounded-xl p-1">
+                {(["all", "301", "501", "cricket"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => setFilterGameMode(mode)}
+                    className={`py-2 rounded-lg text-sm font-semibold transition-colors ${
+                      filterGameMode === mode
+                        ? "bg-[#4ade80] text-black"
+                        : "text-white hover:bg-[#333]"
+                    }`}
+                  >
+                    {mode === "all" ? "All" : mode === "cricket" ? "Cricket" : mode}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Match Type */}
+            <div>
+              <label className="block text-slate-400 text-sm mb-2">Match Type</label>
+              <div className="grid grid-cols-3 gap-1 bg-[#1a1a1a] rounded-xl p-1">
+                {(["all", "ranked", "practice"] as const).map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => setFilterMatchType(type)}
+                    className={`py-2 rounded-lg text-sm font-semibold transition-colors ${
+                      filterMatchType === type
+                        ? type === "ranked" ? "bg-[#4ade80] text-black" : type === "practice" ? "bg-[#f5a623] text-black" : "bg-[#4ade80] text-black"
+                        : "text-white hover:bg-[#333]"
+                    }`}
+                  >
+                    {type === "all" ? "All" : type.charAt(0).toUpperCase() + type.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Tournament */}
+            <div>
+              <label className="block text-slate-400 text-sm mb-2">Tournament</label>
+              <div className="grid grid-cols-3 gap-1 bg-[#1a1a1a] rounded-xl p-1">
+                {(["all", "tournament", "regular"] as const).map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => setFilterTournament(type)}
+                    className={`py-2 rounded-lg text-sm font-semibold transition-colors ${
+                      filterTournament === type
+                        ? type === "tournament" ? "bg-purple-500 text-white" : "bg-[#4ade80] text-black"
+                        : "text-white hover:bg-[#333]"
+                    }`}
+                  >
+                    {type === "all" ? "All" : type.charAt(0).toUpperCase() + type.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Player */}
+            <div>
+              <label className="block text-slate-400 text-sm mb-2">Player</label>
+              <div className="relative">
+                <select
+                  value={filterPlayer}
+                  onChange={(e) => setFilterPlayer(e.target.value)}
+                  className="w-full px-4 py-3 pr-12 bg-[#1a1a1a] rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-[#4ade80] appearance-none"
+                >
+                  <option value="">All Players</option>
+                  {sortedPlayers.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+
+            {/* Date Range */}
+            <div>
+              <label className="block text-slate-400 text-sm mb-2">Date Range</label>
+              <div className="grid grid-cols-4 gap-1 bg-[#1a1a1a] rounded-xl p-1">
+                {(["all", "today", "week", "month"] as const).map((range) => (
+                  <button
+                    key={range}
+                    onClick={() => setFilterDateRange(range)}
+                    className={`py-2 rounded-lg text-sm font-semibold transition-colors ${
+                      filterDateRange === range
+                        ? "bg-[#4ade80] text-black"
+                        : "text-white hover:bg-[#333]"
+                    }`}
+                  >
+                    {range === "all" ? "All" : range === "today" ? "Today" : range === "week" ? "Week" : "Month"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Sort Order */}
+            <div>
+              <label className="block text-slate-400 text-sm mb-2">Sort By</label>
+              <div className="grid grid-cols-2 gap-1 bg-[#1a1a1a] rounded-xl p-1">
+                {(["newest", "oldest"] as const).map((order) => (
+                  <button
+                    key={order}
+                    onClick={() => setSortOrder(order)}
+                    className={`py-2 rounded-lg text-sm font-semibold transition-colors ${
+                      sortOrder === order
+                        ? "bg-[#4ade80] text-black"
+                        : "text-white hover:bg-[#333]"
+                    }`}
+                  >
+                    {order === "newest" ? "Newest First" : "Oldest First"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Clear Filters Button */}
+            {hasActiveFilters && (
+              <button
+                onClick={clearFilters}
+                className="w-full py-2 bg-[#444] hover:bg-[#555] text-white rounded-xl font-semibold transition-colors"
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Results Count */}
+        <div className="mt-2 text-slate-500 text-sm">
+          Showing {filteredMatches.length} of {matches.length} matches
+        </div>
+      </div>
+
       <div className="px-4 pb-4">
-        {matches.length === 0 ? (
+        {filteredMatches.length === 0 ? (
           <div className="bg-[#2a2a2a] rounded-xl p-8 text-center">
-            <p className="text-slate-500">No matches played yet</p>
-            <button onClick={openAddModal} className="text-[#4ade80] text-sm mt-2">
-              Add a match manually
-            </button>
+            <p className="text-slate-500">
+              {matches.length === 0 ? "No matches played yet" : "No matches match your filters"}
+            </p>
+            {matches.length === 0 ? (
+              <button onClick={openAddModal} className="text-[#4ade80] text-sm mt-2">
+                Add a match manually
+              </button>
+            ) : (
+              <button onClick={clearFilters} className="text-[#4ade80] text-sm mt-2">
+                Clear filters
+              </button>
+            )}
           </div>
         ) : (
           <div className="space-y-3">
-            {matches.map((match) => {
+            {filteredMatches.map((match) => {
               const isMultiPlayer = match.playerCount > 2;
               const otherPlayersCount = isMultiPlayer ? match.playerCount - 1 : 0;
               // For multi-player: player1 is winner, player2Name contains all other players
