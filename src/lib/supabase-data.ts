@@ -613,12 +613,30 @@ export async function fetchRecentMatches(limit: number = 10): Promise<MatchResul
   return (data || []).map(dbToMatch);
 }
 
+// Get current time formatted for Finnish timezone (Europe/Helsinki)
+function getFinnishTimestamp(): string {
+  const now = new Date();
+  // Format in Finnish timezone using ISO-like format
+  const formatter = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Europe/Helsinki',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+  const parts = formatter.formatToParts(now);
+  const get = (type: string) => parts.find(p => p.type === type)?.value || '00';
+  return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}:${get('second')}`;
+}
+
 export async function createMatch(match: Omit<MatchResult, 'id' | 'playedAt'>): Promise<MatchResult | null> {
   const supabase = createClient();
   const newMatch = matchToDb({
     ...match,
     id: generateId(),
-    playedAt: new Date().toISOString(),
+    playedAt: getFinnishTimestamp(),
   });
 
   const { data, error } = await supabase
