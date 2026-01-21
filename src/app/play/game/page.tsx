@@ -137,10 +137,10 @@ function GameContent() {
     setScorePopup({ score, visible: true });
     setTimeout(() => {
       setScorePopup(prev => prev ? { ...prev, visible: false } : null);
-    }, 600);
+    }, 1100);
     setTimeout(() => {
       setScorePopup(null);
-    }, 900);
+    }, 1400);
   };
 
   // Ref for horizontal scoreboard scrolling (3+ players)
@@ -1340,26 +1340,26 @@ function GameContent() {
       {/* Score Popup Animation */}
       {scorePopup && (
         <div
-          className={`fixed inset-0 flex items-center justify-center z-[100] pointer-events-none transition-all duration-300 ${
+          className={`fixed inset-0 flex items-center justify-center z-[100] pointer-events-none transition-all duration-500 ${
             scorePopup.visible
               ? 'opacity-100'
               : 'opacity-0'
           }`}
         >
-          <div className="bg-black/95 px-16 py-10 rounded-3xl">
-            <div
-              className={`text-8xl font-black text-white tracking-tighter transition-transform duration-300 ${
-                scorePopup.visible
-                  ? 'scale-100'
-                  : 'scale-75'
-              }`}
-              style={{
-                fontFamily: "var(--font-bebas), 'Impact', 'Arial Black', sans-serif",
-                letterSpacing: '-0.02em'
-              }}
-            >
-              {scorePopup.score}
-            </div>
+          <div className="absolute inset-0 bg-black/95" />
+          <div
+            className={`relative text-9xl font-black text-white tracking-tighter transition-transform duration-500 ${
+              scorePopup.visible
+                ? 'scale-100'
+                : 'scale-50'
+            }`}
+            style={{
+              fontFamily: "var(--font-bebas), 'Impact', 'Arial Black', sans-serif",
+              letterSpacing: '-0.02em',
+              fontSize: 'clamp(8rem, 25vw, 12rem)'
+            }}
+          >
+            {scorePopup.score}
           </div>
         </div>
       )}

@@ -23,6 +23,8 @@ interface HistoryEntry {
   number: CricketNumber;
   previousMarks: number;
   previousPoints: number;
+  previousRoundsWon: number;
+  wasLegWin: boolean;
 }
 
 const PLAYER_COLORS = [
@@ -44,11 +46,15 @@ function CricketGameContent() {
   const [winner, setWinner] = useState<Player | null>(null);
   const [showConfirmQuit, setShowConfirmQuit] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [legsToWin, setLegsToWin] = useState(1);
+  const [showLegWinner, setShowLegWinner] = useState<Player | null>(null);
 
   useEffect(() => {
     if (dataLoading) return;
 
     const playerIds = searchParams.get("players")?.split(",") || [];
+    const legs = parseInt(searchParams.get("legs") || "1") || 1;
+    setLegsToWin(legs);
 
     const loadedPlayers: PlayerState[] = [];
     playerIds.forEach((id, index) => {
@@ -81,7 +87,7 @@ function CricketGameContent() {
 
   // Handle tapping on a player's mark area - adds 1 hit
   const handleMarkTap = (playerIndex: number, number: CricketNumber) => {
-    if (gameOver) return;
+    if (gameOver || showLegWinner) return;
 
     // Can't mark if closed by all
     if (isClosedByAll(number)) return;
@@ -90,13 +96,15 @@ function CricketGameContent() {
     const player = newPlayers[playerIndex];
     const currentMarks = player.marks[number];
 
-    // Save state for undo
-    setHistory([...history, {
+    // Save state for undo (will update wasLegWin if this turns out to be a leg win)
+    const historyEntry: HistoryEntry = {
       playerIndex,
       number,
       previousMarks: currentMarks,
       previousPoints: player.points,
-    }]);
+      previousRoundsWon: player.roundsWon,
+      wasLegWin: false,
+    };
 
     // Add 1 mark
     player.marks[number] = currentMarks + 1;
@@ -107,18 +115,41 @@ function CricketGameContent() {
       player.points += pointValue;
     }
 
-    setCricketPlayers(newPlayers);
-
-    // Check for winner
+    // Check for leg winner
     if (hasClosedAll(player)) {
       const otherPlayers = newPlayers.filter((_, i) => i !== playerIndex);
       const hasHighestPoints = otherPlayers.every((p) => player.points >= p.points);
 
       if (hasHighestPoints) {
-        setGameOver(true);
-        setWinner(player.player);
+        // Player wins this leg
+        historyEntry.wasLegWin = true;
+        player.roundsWon += 1;
+
+        if (player.roundsWon >= legsToWin) {
+          // Player wins the match
+          setGameOver(true);
+          setWinner(player.player);
+        } else {
+          // Show leg winner, then reset for next leg
+          setShowLegWinner(player.player);
+        }
       }
     }
+
+    setHistory([...history, historyEntry]);
+    setCricketPlayers(newPlayers);
+  };
+
+  // Start next leg - reset marks and points but keep roundsWon
+  const startNextLeg = () => {
+    const newPlayers = cricketPlayers.map((p) => ({
+      ...p,
+      marks: { 20: 0, 19: 0, 18: 0, 17: 0, 16: 0, 15: 0, 25: 0 } as Record<CricketNumber, number>,
+      points: 0,
+    }));
+    setCricketPlayers(newPlayers);
+    setHistory([]);
+    setShowLegWinner(null);
   };
 
   // Undo last action
@@ -131,11 +162,13 @@ function CricketGameContent() {
 
     player.marks[lastEntry.number] = lastEntry.previousMarks;
     player.points = lastEntry.previousPoints;
+    player.roundsWon = lastEntry.previousRoundsWon;
 
     setCricketPlayers(newPlayers);
     setHistory(history.slice(0, -1));
     setGameOver(false);
     setWinner(null);
+    setShowLegWinner(null);
   };
 
   // End game and save
@@ -145,6 +178,13 @@ function CricketGameContent() {
     const winnerState = cricketPlayers.find((p) => p.player.id === winner.id);
     if (!winnerState) return;
 
+    // Build allPlayerNames with scores for multi-player (format: "Name:legs,Name:legs")
+    const allPlayerData = cricketPlayers
+      .map(p => `${p.player.name}:${p.roundsWon}`)
+      .join(',');
+
+    // Calculate total points scored across all legs (stored in player1Avg/player2Avg)
+    // For simplicity, we'll just store the final leg's points - the legs won is more important
     await saveMatch({
       player1Id: cricketPlayers[0].player.id,
       player2Id: cricketPlayers[1]?.player.id || "",
@@ -152,23 +192,24 @@ function CricketGameContent() {
       player2Name: cricketPlayers[1]?.player.name || "",
       winnerId: winner.id,
       winnerName: winner.name,
-      player1Legs: cricketPlayers[0].player.id === winner.id ? 1 : 0,
-      player2Legs: cricketPlayers[1]?.player.id === winner.id ? 1 : 0,
+      player1Legs: cricketPlayers[0].roundsWon,
+      player2Legs: cricketPlayers[1]?.roundsWon || 0,
       player1EloChange: 0,
       player2EloChange: 0,
       player1EloStart: cricketPlayers[0].player.elo,
       player2EloStart: cricketPlayers[1]?.player.elo || 1000,
-      player1Avg: 0,
-      player2Avg: 0,
+      player1Avg: cricketPlayers[0].points,  // Store last leg's points
+      player2Avg: cricketPlayers[1]?.points || 0,  // Store last leg's points
       player1OneEighties: 0,
       player2OneEighties: 0,
       gameMode: "cricket",
-      legsToWin: 1,
+      legsToWin: legsToWin,
       isRanked: false,
       highestCheckout: 0,
       player1HighestCheckout: 0,
       player2HighestCheckout: 0,
       playerCount: cricketPlayers.length,
+      allPlayerNames: cricketPlayers.length > 2 ? allPlayerData : undefined,
     });
 
     router.push("/");
@@ -260,7 +301,9 @@ function CricketGameContent() {
         </button>
         <div className="text-center">
           <h1 className="text-white font-bold tracking-wide">CRICKET</h1>
-          <p className="text-[#f5a623] text-xs">Practice</p>
+          <p className="text-[#f5a623] text-xs">
+            Practice{legsToWin > 1 ? ` • Best to ${legsToWin}` : ""}
+          </p>
         </div>
         <button
           onClick={undo}
@@ -285,6 +328,9 @@ function CricketGameContent() {
               >
                 <p className="text-white text-xs font-medium truncate">{p.player.name.split(" ")[0]}</p>
                 <p className="text-white text-lg font-bold">{p.points}</p>
+                {legsToWin > 1 && (
+                  <p className="text-white/80 text-xs">Legs: {p.roundsWon}</p>
+                )}
               </div>
             ))}
             <div className="w-10" /> {/* Spacer for number column */}
@@ -301,7 +347,7 @@ function CricketGameContent() {
                   <button
                     key={`${p.player.id}-${num}`}
                     onClick={() => handleMarkTap(index, num)}
-                    disabled={gameOver || closedByAll}
+                    disabled={gameOver || closedByAll || !!showLegWinner}
                     className="flex-1 flex justify-center items-center py-1 active:scale-95 transition-transform disabled:active:scale-100"
                   >
                     {renderMark(p.marks[num], p.color, closedByAll, isCompact)}
@@ -328,7 +374,29 @@ function CricketGameContent() {
         </p>
       </div>
 
-      {/* Winner Modal */}
+      {/* Leg Winner Modal */}
+      {showLegWinner && (
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#2a2a2a] rounded-2xl p-6 w-full max-w-sm text-center">
+            <div className="text-4xl mb-4">🎯</div>
+            <h2 className="text-white font-bold text-2xl mb-2">
+              {showLegWinner.name}
+            </h2>
+            <p className="text-[#4ade80] text-lg mb-2">Wins the Leg!</p>
+            <p className="text-slate-400 mb-6">
+              {cricketPlayers.map(p => `${p.player.name.split(" ")[0]}: ${p.roundsWon}`).join(" - ")}
+            </p>
+            <button
+              onClick={startNextLeg}
+              className="w-full py-3 bg-[#4ade80] hover:bg-[#22c55e] text-black rounded-xl font-semibold"
+            >
+              Next Leg
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Match Winner Modal */}
       {gameOver && winner && (
         <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
           <div className="bg-[#2a2a2a] rounded-2xl p-6 w-full max-w-sm text-center">
@@ -336,9 +404,12 @@ function CricketGameContent() {
             <h2 className="text-white font-bold text-3xl mb-2">
               {winner.name}
             </h2>
-            <p className="text-[#4ade80] text-xl mb-2">Wins!</p>
+            <p className="text-[#4ade80] text-xl mb-2">Wins the Match!</p>
             <p className="text-slate-400 mb-6">
-              {cricketPlayers.find((p) => p.player.id === winner.id)?.points} points
+              {legsToWin > 1
+                ? cricketPlayers.map(p => `${p.player.name.split(" ")[0]}: ${p.roundsWon}`).join(" - ")
+                : `${cricketPlayers.find((p) => p.player.id === winner.id)?.points} points`
+              }
             </p>
             <div className="grid grid-cols-2 gap-3">
               <button

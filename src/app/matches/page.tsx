@@ -497,6 +497,11 @@ export default function Matches() {
                           </span>
                         </div>
                       )}
+                      {!match.isRanked && match.gameMode === "cricket" && match.player1Avg > 0 && (
+                        <div className="text-xs text-slate-500 mt-1">
+                          Pts: {match.player1Avg}
+                        </div>
+                      )}
                     </div>
 
                     <div className="px-4">
@@ -526,7 +531,12 @@ export default function Matches() {
                           • Avg: {match.player2Avg.toFixed(1)}
                         </div>
                       )}
-                      {isMultiPlayer && match.allPlayerNames && (
+                      {!match.isRanked && match.gameMode === "cricket" && match.player2Avg > 0 && (
+                        <div className="text-xs text-slate-500 mt-1">
+                          Pts: {match.player2Avg}
+                        </div>
+                      )}
+                      {isMultiPlayer && match.allPlayerNames && match.gameMode !== "cricket" && (
                         <div className="text-xs text-slate-500 mt-1">
                           All: {match.allPlayerNames}
                         </div>

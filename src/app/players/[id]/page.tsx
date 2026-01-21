@@ -73,9 +73,12 @@ export default function PlayerProfile({ params }: { params: Promise<{ id: string
     return Math.round((player.wins / (player.wins + player.losses)) * 100);
   }, [player]);
 
-  // Calculate averages and visit stats from matches
+  // Calculate averages and visit stats from matches (excluding cricket - it uses different stats)
   const matchStats = useMemo(() => {
     if (!player) return { avg: 0, first9Avg: 0, sixtyPlus: 0, eightyPlus: 0, hundredPlus: 0, matchCount: 0, dartsThrown: 0, doublesPercent: 0 };
+
+    // Filter out cricket matches - they store points in avg field, not actual averages
+    const nonCricketMatches = playerMatches.filter(m => m.gameMode !== "cricket");
 
     let totalAvg = 0;
     let totalFirst9Avg = 0;
@@ -88,7 +91,7 @@ export default function PlayerProfile({ params }: { params: Promise<{ id: string
     let doubleAttempts = 0;
     let doubleHits = 0;
 
-    playerMatches.forEach(match => {
+    nonCricketMatches.forEach(match => {
       const isPlayer1 = match.player1Id === player.id;
       const avg = isPlayer1 ? match.player1Avg : match.player2Avg;
       const first9 = isPlayer1 ? match.player1First9Avg : match.player2First9Avg;
@@ -121,11 +124,28 @@ export default function PlayerProfile({ params }: { params: Promise<{ id: string
       sixtyPlus,
       eightyPlus,
       hundredPlus,
-      matchCount: playerMatches.length,
+      matchCount: nonCricketMatches.length,
       dartsThrown,
       doublesPercent: doubleAttempts > 0 ? (doubleHits / doubleAttempts) * 100 : 0,
     };
   }, [player, playerMatches]);
+
+  // Calculate cricket stats
+  const cricketStats = useMemo(() => {
+    if (!player) return { wins: 0, losses: 0, played: 0, winRate: 0 };
+
+    const cricketMatches = matches.filter(m =>
+      m.gameMode === "cricket" &&
+      (m.player1Id === player.id || m.player2Id === player.id)
+    );
+
+    const wins = cricketMatches.filter(m => m.winnerId === player.id).length;
+    const played = cricketMatches.length;
+    const losses = played - wins;
+    const winRate = played > 0 ? Math.round((wins / played) * 100) : 0;
+
+    return { wins, losses, played, winRate };
+  }, [player, matches]);
 
   // Get player's tournament history
   const playerTournaments = useMemo(() => {
@@ -450,6 +470,32 @@ export default function PlayerProfile({ params }: { params: Promise<{ id: string
               <span className="text-white font-semibold">{matchStats.matchCount}</span>
             </div>
           </div>
+
+          {/* Cricket Stats - only show if player has cricket matches */}
+          {cricketStats.played > 0 && (
+            <>
+              <div className="border-t border-[#333] my-4" />
+              <p className="text-slate-400 text-xs mb-3 uppercase tracking-wide">Cricket</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 text-sm">Wins</span>
+                  <span className="text-[#4ade80] font-semibold">{cricketStats.wins}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 text-sm">Losses</span>
+                  <span className="text-[#e85d3b] font-semibold">{cricketStats.losses}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 text-sm">Win Rate</span>
+                  <span className="text-white font-semibold">{cricketStats.winRate}%</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 text-sm">Played</span>
+                  <span className="text-white font-semibold">{cricketStats.played}</span>
+                </div>
+              </div>
+            </>
+          )}
 
           {/* Divider */}
           <div className="border-t border-[#333] my-4" />

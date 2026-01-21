@@ -301,110 +301,145 @@ export default function MatchDetail() {
       {/* Statistics */}
       <div className="px-4 pb-6">
         <h2 className="text-white font-semibold mb-4">Match Statistics</h2>
-        <div className="bg-[#2a2a2a] rounded-2xl p-4">
-          <StatBar
-            label="Average"
-            value1={match.player1Avg}
-            value2={match.player2Avg}
-            format="decimal"
-          />
-
-          {/* First 9 Average - only show if data exists */}
-          {(match.player1First9Avg || match.player2First9Avg) && (
+        {match.gameMode === "cricket" ? (
+          // Cricket-specific stats
+          <div className="bg-[#2a2a2a] rounded-2xl p-4">
             <StatBar
-              label="First 9 Avg"
-              value1={match.player1First9Avg || 0}
-              value2={match.player2First9Avg || 0}
+              label="Points"
+              value1={match.player1Avg}
+              value2={match.player2Avg}
+            />
+            {/* Multi-player scores for cricket */}
+            {match.playerCount > 2 && match.allPlayerNames && (
+              <div className="mt-4 pt-4 border-t border-[#333]">
+                <p className="text-slate-400 text-sm mb-3">All Players</p>
+                <div className="space-y-2">
+                  {match.allPlayerNames.split(',').map((entry, i) => {
+                    const [name, points] = entry.split(':');
+                    const isWinner = name === match.winnerName;
+                    return (
+                      <div key={i} className="flex justify-between items-center">
+                        <span className={`${isWinner ? "text-white font-semibold" : "text-slate-400"}`}>
+                          {name}
+                          {isWinner && <span className="text-[#4ade80] text-xs ml-2">WIN</span>}
+                        </span>
+                        <span className={`font-semibold ${isWinner ? "text-[#4ade80]" : "text-slate-400"}`}>
+                          {points} pts
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          // 301/501 stats
+          <div className="bg-[#2a2a2a] rounded-2xl p-4">
+            <StatBar
+              label="Average"
+              value1={match.player1Avg}
+              value2={match.player2Avg}
               format="decimal"
             />
-          )}
 
-          <StatBar
-            label="100+"
-            value1={match.player1HundredPlus || 0}
-            value2={match.player2HundredPlus || 0}
-          />
+            {/* First 9 Average - only show if data exists */}
+            {(match.player1First9Avg || match.player2First9Avg) && (
+              <StatBar
+                label="First 9 Avg"
+                value1={match.player1First9Avg || 0}
+                value2={match.player2First9Avg || 0}
+                format="decimal"
+              />
+            )}
 
-          <StatBar
-            label="80+"
-            value1={match.player1EightyPlus || 0}
-            value2={match.player2EightyPlus || 0}
-          />
-
-          <StatBar
-            label="60+"
-            value1={match.player1SixtyPlus || 0}
-            value2={match.player2SixtyPlus || 0}
-          />
-
-          {/* Doubles % - custom display since we need percentages */}
-          {((match.player1DoubleAttempts && match.player1DoubleAttempts > 0) ||
-            (match.player2DoubleAttempts && match.player2DoubleAttempts > 0)) && (
-            <div className="mb-4">
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-white font-semibold w-12">
-                  {match.player1DoubleAttempts && match.player1DoubleAttempts > 0
-                    ? `${Math.round((match.player1DoubleHits || 0) / match.player1DoubleAttempts * 100)}%`
-                    : '-'}
-                </span>
-                <span className="text-slate-400 text-sm flex-1 text-center">Doubles</span>
-                <span className="text-white font-semibold w-12 text-right">
-                  {match.player2DoubleAttempts && match.player2DoubleAttempts > 0
-                    ? `${Math.round((match.player2DoubleHits || 0) / match.player2DoubleAttempts * 100)}%`
-                    : '-'}
-                </span>
-              </div>
-              <div className="flex h-2 rounded-full overflow-hidden bg-[#333]">
-                <div
-                  className="bg-[#e85d3b] transition-all"
-                  style={{
-                    width: `${(() => {
-                      const p1Pct = match.player1DoubleAttempts && match.player1DoubleAttempts > 0
-                        ? (match.player1DoubleHits || 0) / match.player1DoubleAttempts : 0;
-                      const p2Pct = match.player2DoubleAttempts && match.player2DoubleAttempts > 0
-                        ? (match.player2DoubleHits || 0) / match.player2DoubleAttempts : 0;
-                      const total = p1Pct + p2Pct;
-                      return total > 0 ? (p1Pct / total * 100) : 50;
-                    })()}%`
-                  }}
-                />
-                <div
-                  className="bg-[#f5a623] transition-all"
-                  style={{
-                    width: `${(() => {
-                      const p1Pct = match.player1DoubleAttempts && match.player1DoubleAttempts > 0
-                        ? (match.player1DoubleHits || 0) / match.player1DoubleAttempts : 0;
-                      const p2Pct = match.player2DoubleAttempts && match.player2DoubleAttempts > 0
-                        ? (match.player2DoubleHits || 0) / match.player2DoubleAttempts : 0;
-                      const total = p1Pct + p2Pct;
-                      return total > 0 ? (p2Pct / total * 100) : 50;
-                    })()}%`
-                  }}
-                />
-              </div>
-            </div>
-          )}
-
-          {(match.player1Darts || match.player2Darts) && (
             <StatBar
-              label="Darts"
-              value1={match.player1Darts || 0}
-              value2={match.player2Darts || 0}
+              label="100+"
+              value1={match.player1HundredPlus || 0}
+              value2={match.player2HundredPlus || 0}
             />
-          )}
 
-          <StatBar
-            label="Highest Checkout"
-            value1={match.player1HighestCheckout}
-            value2={match.player2HighestCheckout}
-          />
+            <StatBar
+              label="80+"
+              value1={match.player1EightyPlus || 0}
+              value2={match.player2EightyPlus || 0}
+            />
 
-          <StatBar
-            label="Legs Won"
-            value1={match.player1Legs}
-            value2={match.player2Legs}
-          />
-        </div>
+            <StatBar
+              label="60+"
+              value1={match.player1SixtyPlus || 0}
+              value2={match.player2SixtyPlus || 0}
+            />
+
+            {/* Doubles % - custom display since we need percentages */}
+            {((match.player1DoubleAttempts && match.player1DoubleAttempts > 0) ||
+              (match.player2DoubleAttempts && match.player2DoubleAttempts > 0)) && (
+              <div className="mb-4">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-white font-semibold w-12">
+                    {match.player1DoubleAttempts && match.player1DoubleAttempts > 0
+                      ? `${Math.round((match.player1DoubleHits || 0) / match.player1DoubleAttempts * 100)}%`
+                      : '-'}
+                  </span>
+                  <span className="text-slate-400 text-sm flex-1 text-center">Doubles</span>
+                  <span className="text-white font-semibold w-12 text-right">
+                    {match.player2DoubleAttempts && match.player2DoubleAttempts > 0
+                      ? `${Math.round((match.player2DoubleHits || 0) / match.player2DoubleAttempts * 100)}%`
+                      : '-'}
+                  </span>
+                </div>
+                <div className="flex h-2 rounded-full overflow-hidden bg-[#333]">
+                  <div
+                    className="bg-[#e85d3b] transition-all"
+                    style={{
+                      width: `${(() => {
+                        const p1Pct = match.player1DoubleAttempts && match.player1DoubleAttempts > 0
+                          ? (match.player1DoubleHits || 0) / match.player1DoubleAttempts : 0;
+                        const p2Pct = match.player2DoubleAttempts && match.player2DoubleAttempts > 0
+                          ? (match.player2DoubleHits || 0) / match.player2DoubleAttempts : 0;
+                        const total = p1Pct + p2Pct;
+                        return total > 0 ? (p1Pct / total * 100) : 50;
+                      })()}%`
+                    }}
+                  />
+                  <div
+                    className="bg-[#f5a623] transition-all"
+                    style={{
+                      width: `${(() => {
+                        const p1Pct = match.player1DoubleAttempts && match.player1DoubleAttempts > 0
+                          ? (match.player1DoubleHits || 0) / match.player1DoubleAttempts : 0;
+                        const p2Pct = match.player2DoubleAttempts && match.player2DoubleAttempts > 0
+                          ? (match.player2DoubleHits || 0) / match.player2DoubleAttempts : 0;
+                        const total = p1Pct + p2Pct;
+                        return total > 0 ? (p2Pct / total * 100) : 50;
+                      })()}%`
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {(match.player1Darts || match.player2Darts) && (
+              <StatBar
+                label="Darts"
+                value1={match.player1Darts || 0}
+                value2={match.player2Darts || 0}
+              />
+            )}
+
+            <StatBar
+              label="Highest Checkout"
+              value1={match.player1HighestCheckout}
+              value2={match.player2HighestCheckout}
+            />
+
+            <StatBar
+              label="Legs Won"
+              value1={match.player1Legs}
+              value2={match.player2Legs}
+            />
+          </div>
+        )}
       </div>
 
       {/* Match Info */}

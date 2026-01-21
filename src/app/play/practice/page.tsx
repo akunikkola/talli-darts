@@ -234,10 +234,9 @@ export default function PracticeSetup() {
           </div>
         </div>
 
-        {/* Best to (Legs) - only for non-cricket */}
-        {gameMode !== "cricket" && (
-          <div className="mb-6">
-            <h2 className="text-white font-semibold mb-3">Best to</h2>
+        {/* Best to (Legs) */}
+        <div className="mb-6">
+          <h2 className="text-white font-semibold mb-3">Best to</h2>
             <div className="flex gap-2 mb-3">
               {[1, 2, 3, 5, 7].map((legs) => (
                 <button
@@ -266,8 +265,7 @@ export default function PracticeSetup() {
                 className="flex-1 px-4 py-2 bg-[#2a2a2a] rounded-xl text-white text-center focus:outline-none focus:ring-2 focus:ring-[#4ade80]"
               />
             </div>
-          </div>
-        )}
+        </div>
 
         {gameMode === "cricket" && (
           <div className="mb-6 bg-[#2a2a2a] rounded-xl p-4">
