@@ -793,12 +793,14 @@ function GameContent() {
     setGame((prev) => prev ? { ...prev, pendingLegWin: null } : null);
   };
 
-  const submitScore = (scoreValue: number, doubleAttempts?: number, doubleHits?: number) => {
+  const submitScore = (scoreValue: number, doubleAttempts?: number, doubleHits?: number, overrideRemaining?: number) => {
     // Only block for pendingDoubleAttempts if we're NOT being called from confirmDoubleAttempts
     // (when doubleAttempts is provided, we're coming from the popup confirmation)
     if (game.gameOver || game.pendingLegWin || (pendingDoubleAttempts && doubleAttempts === undefined)) return;
 
-    const remaining = currentPlayer.remaining;
+    // Use overrideRemaining if provided (from confirmDoubleAttempts), otherwise read from game state
+    // This ensures checkout detection works even if game state changed between popup show and confirm
+    const remaining = overrideRemaining !== undefined ? overrideRemaining : currentPlayer.remaining;
     const newRemaining = remaining - scoreValue;
 
     // In visit mode (no double stats passed), check if player was on a double
@@ -928,7 +930,7 @@ function GameContent() {
   const confirmDoubleAttempts = (dartsThrown: number) => {
     if (!pendingDoubleAttempts || !game) return;
 
-    const { wasCheckout, score } = pendingDoubleAttempts;
+    const { wasCheckout, score, previousRemaining } = pendingDoubleAttempts;
     const attempts = dartsThrown;
     const hits = wasCheckout ? 1 : 0;
 
@@ -970,7 +972,9 @@ function GameContent() {
     }
 
     // Now submit the score with double stats
-    submitScore(score, attempts, hits);
+    // Pass previousRemaining to ensure checkout detection works correctly
+    // even if game state changed between showing popup and confirming
+    submitScore(score, attempts, hits, previousRemaining);
   };
 
   const handleNumberPad = (key: string) => {
