@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useData } from "@/context/DataContext";
 import type { Player, MatchResult } from "@/lib/supabase-data";
+import { formatFinnishDateTime } from "@/lib/supabase-data";
 import { fetchTournaments } from "@/lib/tournament-data";
 import type { Tournament } from "@/types/tournament";
 
@@ -215,10 +216,8 @@ export default function PlayerProfile({ params }: { params: Promise<{ id: string
 
   const formatDateTime = (match: MatchResult) => {
     // Use startedAt if available, otherwise fall back to playedAt
-    const date = match.startedAt ? new Date(match.startedAt) : new Date(match.playedAt);
-    const dateStr = date.toLocaleDateString("fi-FI", { day: "2-digit", month: "2-digit" });
-    const timeStr = date.toLocaleTimeString("fi-FI", { hour: "2-digit", minute: "2-digit" });
-    return `${dateStr} ${timeStr}`;
+    const timestamp = match.startedAt || match.playedAt;
+    return formatFinnishDateTime(timestamp, { showRelative: false, showTime: true });
   };
 
   if (!player) {

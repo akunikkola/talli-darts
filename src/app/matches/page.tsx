@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useMemo } from "react";
 import { useData } from "@/context/DataContext";
 import type { MatchResult, Player } from "@/lib/supabase-data";
+import { formatFinnishDateTime } from "@/lib/supabase-data";
 
 export default function Matches() {
   const { matches, players, loading, updateMatch, deleteMatchAndRevertStats, saveMatch } = useData();
@@ -113,25 +114,8 @@ export default function Matches() {
 
   const formatDateTime = (match: MatchResult) => {
     // Use startedAt if available, otherwise fall back to playedAt
-    const date = match.startedAt ? new Date(match.startedAt) : new Date(match.playedAt);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
-    const time = date.toLocaleTimeString("fi-FI", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-
-    if (days === 0) {
-      return `Today ${time}`;
-    } else if (days === 1) {
-      return `Yesterday ${time}`;
-    } else if (days < 7) {
-      return `${days}d ago ${time}`;
-    } else {
-      return `${date.toLocaleDateString("fi-FI", { day: "2-digit", month: "2-digit" })} ${time}`;
-    }
+    const timestamp = match.startedAt || match.playedAt;
+    return formatFinnishDateTime(timestamp, { showRelative: true, showTime: true });
   };
 
   const openEditModal = (match: MatchResult) => {

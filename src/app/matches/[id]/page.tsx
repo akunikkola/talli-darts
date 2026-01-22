@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useData } from "@/context/DataContext";
+import { formatFinnishDateTime, calculateMatchDuration, formatDuration } from "@/lib/supabase-data";
 import { useState } from "react";
 
 // Stat comparison bar component
@@ -93,28 +94,13 @@ export default function MatchDetail() {
   };
 
   // Use startedAt if available, otherwise fall back to playedAt
-  const startDate = match.startedAt ? new Date(match.startedAt) : new Date(match.playedAt);
-  const endDate = new Date(match.playedAt);
-
-  const formattedDate = startDate.toLocaleDateString("fi-FI", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
-  const formattedTime = startDate.toLocaleTimeString("fi-FI", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const timestamp = match.startedAt || match.playedAt;
+  const formattedDate = formatFinnishDateTime(timestamp, { showRelative: false, showTime: false, showYear: true });
+  const formattedTime = formatFinnishDateTime(timestamp, { showRelative: false, showTime: true }).split(' ').pop() || '';
 
   // Calculate duration if we have both start and end times
-  const durationMinutes = match.startedAt
-    ? Math.round((endDate.getTime() - startDate.getTime()) / 60000)
-    : null;
-  const formattedDuration = durationMinutes !== null
-    ? durationMinutes < 60
-      ? `${durationMinutes}min`
-      : `${Math.floor(durationMinutes / 60)}h ${durationMinutes % 60}min`
-    : null;
+  const durationMinutes = calculateMatchDuration(match.startedAt, match.playedAt);
+  const formattedDuration = formatDuration(durationMinutes);
 
   const player1Won = match.winnerId === match.player1Id;
 

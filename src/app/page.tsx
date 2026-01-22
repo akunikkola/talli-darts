@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import { useData } from "@/context/DataContext";
 import type { Player } from "@/lib/supabase-data";
+import { formatFinnishDateTime, getFinnishWeekday } from "@/lib/supabase-data";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import LoadingScreen from "@/components/LoadingScreen";
 import { isTestPlayer } from "@/lib/test-players";
@@ -517,7 +518,7 @@ export default function Home() {
                       </>
                     )}
                     <span>•</span>
-                    <span>{new Date(match.playedAt).toLocaleDateString()}</span>
+                    <span>{formatFinnishDateTime(match.playedAt, { showRelative: true, showTime: false })}</span>
                   </div>
                 </Link>
               );
@@ -603,7 +604,7 @@ export default function Home() {
                       <span>•</span>
                       <span>{tournament.gameMode}</span>
                       <span>•</span>
-                      <span>{new Date(tournament.completedAt || tournament.createdAt).toLocaleDateString()}</span>
+                      <span>{formatFinnishDateTime(tournament.completedAt || tournament.createdAt, { showRelative: false, showTime: false })}</span>
                     </div>
                   </Link>
                 );
@@ -643,7 +644,7 @@ export default function Home() {
                 <div className="flex-1 ml-3">
                   <span className="text-white font-medium">{entry.playerName}</span>
                   <span className="text-slate-500 text-xs ml-2">
-                    {new Date(entry.playedAt).toLocaleDateString("fi-FI", { weekday: "short" })}
+                    {getFinnishWeekday(entry.playedAt)}
                   </span>
                 </div>
                 <span className="text-[#4ade80] font-bold text-lg">{entry.checkout}</span>

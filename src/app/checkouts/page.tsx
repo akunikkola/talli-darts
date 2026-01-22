@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { useData } from "@/context/DataContext";
+import { formatFinnishDateTime, getFinnishWeekday } from "@/lib/supabase-data";
 
 interface CheckoutEntry {
   playerName: string;
@@ -87,11 +88,9 @@ export default function CheckoutsPage() {
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("fi-FI", {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-    });
+    const weekday = getFinnishWeekday(dateString);
+    const date = formatFinnishDateTime(dateString, { showRelative: false, showTime: false });
+    return `${weekday} ${date}`;
   };
 
   return (

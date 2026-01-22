@@ -631,6 +631,129 @@ function getFinnishTimestamp(): string {
   return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}:${get('second')}`;
 }
 
+// Get Finnish date parts from current time (for comparing calendar days)
+function getFinnishDateParts(date: Date = new Date()): { year: number; month: number; day: number } {
+  const formatter = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Europe/Helsinki',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  const parts = formatter.formatToParts(date);
+  const get = (type: string) => parseInt(parts.find(p => p.type === type)?.value || '0');
+  return { year: get('year'), month: get('month'), day: get('day') };
+}
+
+// Parse a Finnish timestamp string (stored without timezone) and format for display
+// The timestamps in our DB are stored as Finnish time without timezone info (e.g., "2026-01-21T23:30:00")
+export function formatFinnishDateTime(timestampStr: string, options?: {
+  showRelative?: boolean;  // Show "Today", "Yesterday", etc.
+  showTime?: boolean;      // Include time
+  showYear?: boolean;      // Include year in date
+}): string {
+  const { showRelative = true, showTime = true, showYear = false } = options || {};
+
+  // Parse the timestamp - it's stored as Finnish time without timezone
+  // We need to interpret it in Finnish timezone for display
+  // The format is: "2026-01-21T23:30:00"
+  const [datePart, timePart] = timestampStr.split('T');
+  const [year, month, day] = datePart.split('-').map(Number);
+  const [hour, minute] = (timePart || '00:00:00').split(':').map(Number);
+
+  // Get current date/time in Finnish timezone
+  const nowFinnish = getFinnishDateParts();
+
+  // Calculate days difference based on calendar days (not milliseconds)
+  const matchDate = { year, month, day };
+
+  // Simple day comparison for today/yesterday
+  const isToday = matchDate.year === nowFinnish.year &&
+                  matchDate.month === nowFinnish.month &&
+                  matchDate.day === nowFinnish.day;
+
+  // Calculate yesterday in Finnish time
+  const yesterdayDate = new Date();
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  const yesterdayFinnish = getFinnishDateParts(yesterdayDate);
+  const isYesterday = matchDate.year === yesterdayFinnish.year &&
+                      matchDate.month === yesterdayFinnish.month &&
+                      matchDate.day === yesterdayFinnish.day;
+
+  // Format time
+  const timeStr = showTime ? ` ${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}` : '';
+
+  // Format date
+  if (showRelative) {
+    if (isToday) {
+      return `Today${timeStr}`;
+    } else if (isYesterday) {
+      return `Yesterday${timeStr}`;
+    }
+  }
+
+  // Calculate days ago for relative display
+  if (showRelative) {
+    const matchTimestamp = new Date(year, month - 1, day).getTime();
+    const todayTimestamp = new Date(nowFinnish.year, nowFinnish.month - 1, nowFinnish.day).getTime();
+    const daysDiff = Math.floor((todayTimestamp - matchTimestamp) / (1000 * 60 * 60 * 24));
+
+    if (daysDiff > 0 && daysDiff < 7) {
+      return `${daysDiff}d ago${timeStr}`;
+    }
+  }
+
+  // Full date format
+  const dateStr = showYear
+    ? `${day.toString().padStart(2, '0')}.${month.toString().padStart(2, '0')}.${year}`
+    : `${day.toString().padStart(2, '0')}.${month.toString().padStart(2, '0')}`;
+
+  return `${dateStr}${timeStr}`;
+}
+
+// Calculate match duration in minutes from start and end timestamps
+export function calculateMatchDuration(startedAt: string | null | undefined, playedAt: string): number | null {
+  if (!startedAt) return null;
+
+  // Parse both timestamps (both are Finnish time without timezone)
+  const [startDatePart, startTimePart] = startedAt.split('T');
+  const [startYear, startMonth, startDay] = startDatePart.split('-').map(Number);
+  const [startHour, startMinute, startSecond] = (startTimePart || '00:00:00').split(':').map(Number);
+
+  const [endDatePart, endTimePart] = playedAt.split('T');
+  const [endYear, endMonth, endDay] = endDatePart.split('-').map(Number);
+  const [endHour, endMinute, endSecond] = (endTimePart || '00:00:00').split(':').map(Number);
+
+  // Create Date objects for calculation (months are 0-indexed in JS)
+  const startTime = new Date(startYear, startMonth - 1, startDay, startHour, startMinute, startSecond || 0);
+  const endTime = new Date(endYear, endMonth - 1, endDay, endHour, endMinute, endSecond || 0);
+
+  const durationMs = endTime.getTime() - startTime.getTime();
+  return Math.round(durationMs / 60000); // Convert to minutes
+}
+
+// Format duration in minutes to human readable string
+export function formatDuration(minutes: number | null): string | null {
+  if (minutes === null || minutes < 0) return null;
+  if (minutes < 60) return `${minutes}min`;
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`;
+}
+
+// Get short weekday name from a Finnish timestamp (e.g., "ma", "ti", "ke")
+export function getFinnishWeekday(timestampStr: string): string {
+  // Parse the timestamp - it's stored as Finnish time without timezone
+  const [datePart] = timestampStr.split('T');
+  const [year, month, day] = datePart.split('-').map(Number);
+
+  // Create a Date object to get the weekday
+  const date = new Date(year, month - 1, day);
+
+  // Finnish short weekday names
+  const weekdays = ['su', 'ma', 'ti', 'ke', 'to', 'pe', 'la'];
+  return weekdays[date.getDay()];
+}
+
 export async function createMatch(match: Omit<MatchResult, 'id' | 'playedAt'>): Promise<MatchResult | null> {
   const supabase = createClient();
   const newMatch = matchToDb({
