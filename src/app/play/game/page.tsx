@@ -1289,11 +1289,22 @@ function GameContent() {
     submitScore(total, doubleAttempts, doubleHits);
 
     // Reset darts for next turn
-    setGame((prev) => prev ? {
-      ...prev,
-      currentDarts: [],
-      selectedMultiplier: "single"
-    } : null);
+    // Use setTimeout for checkouts to ensure pendingLegWin is set first
+    if (newRemaining === 0) {
+      setTimeout(() => {
+        setGame((prev) => prev ? {
+          ...prev,
+          currentDarts: [],
+          selectedMultiplier: "single"
+        } : null);
+      }, 0);
+    } else {
+      setGame((prev) => prev ? {
+        ...prev,
+        currentDarts: [],
+        selectedMultiplier: "single"
+      } : null);
+    }
   };
 
   const handleDartBust = () => {
