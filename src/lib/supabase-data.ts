@@ -614,7 +614,7 @@ export async function fetchRecentMatches(limit: number = 10): Promise<MatchResul
 }
 
 // Get current time formatted for Finnish timezone (Europe/Helsinki)
-function getFinnishTimestamp(): string {
+export function getFinnishTimestamp(): string {
   const now = new Date();
   // Format in Finnish timezone using ISO-like format
   const formatter = new Intl.DateTimeFormat('sv-SE', {

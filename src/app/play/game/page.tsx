@@ -8,7 +8,7 @@ import { calculateMatchElo } from "@/lib/elo";
 import { useData } from "@/context/DataContext";
 import { isTestPlayer } from "@/lib/test-players";
 import { updateBracketMatch, updateGroupMatch } from "@/lib/tournament-data";
-import { fetchPlayer } from "@/lib/supabase-data";
+import { fetchPlayer, getFinnishTimestamp } from "@/lib/supabase-data";
 
 interface GamePlayer {
   id: string;
@@ -279,7 +279,7 @@ function GameContent() {
           currentDarts: [],
           selectedMultiplier: "single",
           eloChanges: null,
-          startedAt: new Date().toISOString(),
+          startedAt: getFinnishTimestamp(),
         });
       } catch (error) {
         console.error("Error initializing game:", error);

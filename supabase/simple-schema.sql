@@ -25,6 +25,7 @@ create table public.players (
   legs_won integer default 0 not null,
   legs_lost integer default 0 not null,
   one_eighties integer default 0 not null,
+  haminas integer default 0 not null,
   highest_checkout integer default 0 not null,
   club text default '' not null,
   entrance_song text default '' not null,
@@ -48,6 +49,8 @@ create table public.matches (
   player2_legs integer default 0 not null,
   player1_elo_change numeric(10,2) default 0 not null,
   player2_elo_change numeric(10,2) default 0 not null,
+  player1_elo_start numeric(10,2) default 1000,
+  player2_elo_start numeric(10,2) default 1000,
   player1_avg numeric(10,2) default 0 not null,
   player2_avg numeric(10,2) default 0 not null,
   player1_one_eighties integer default 0 not null,
@@ -58,7 +61,25 @@ create table public.matches (
   highest_checkout integer default 0 not null,
   player1_highest_checkout integer default 0 not null,
   player2_highest_checkout integer default 0 not null,
-  played_at timestamptz default now() not null
+  played_at timestamptz default now() not null,
+  started_at timestamptz,
+  player1_darts integer default 0,
+  player2_darts integer default 0,
+  player1_sixty_plus integer default 0,
+  player2_sixty_plus integer default 0,
+  player1_eighty_plus integer default 0,
+  player2_eighty_plus integer default 0,
+  player1_hundred_plus integer default 0,
+  player2_hundred_plus integer default 0,
+  player1_double_attempts integer default 0,
+  player2_double_attempts integer default 0,
+  player1_double_hits integer default 0,
+  player2_double_hits integer default 0,
+  player1_first9_avg numeric(10,2),
+  player2_first9_avg numeric(10,2),
+  player_count integer default 2,
+  all_player_names text,
+  tournament_id text
 );
 
 -- Disable RLS for simplicity (this is a private friend group app)
