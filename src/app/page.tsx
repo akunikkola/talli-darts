@@ -9,7 +9,9 @@ import PlayerAvatar from "@/components/PlayerAvatar";
 import LoadingScreen from "@/components/LoadingScreen";
 import { isTestPlayer } from "@/lib/test-players";
 import { fetchActiveTournament, fetchTournaments } from "@/lib/tournament-data";
+import { subscribeToLiveMatches } from "@/lib/live-match-data";
 import type { Tournament } from "@/types/tournament";
+import type { LiveMatchState } from "@/types/live-match";
 
 type RankingType = "overall" | "301" | "501";
 type MatchFilterType = "all" | "ranked" | "practice";
@@ -42,6 +44,7 @@ export default function Home() {
   const [activeTournament, setActiveTournament] = useState<Tournament | null>(null);
   const [tournamentHistory, setTournamentHistory] = useState<Tournament[]>([]);
   const [tournamentFilter, setTournamentFilter] = useState<TournamentFilterType>("all");
+  const [liveMatches, setLiveMatches] = useState<LiveMatchState[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const touchStartY = useRef(0);
   const isPulling = useRef(false);
@@ -60,6 +63,14 @@ export default function Home() {
       setTournamentHistory(allTournaments.filter(t => t.status === "completed").slice(0, 5));
     };
     loadTournaments();
+  }, []);
+
+  // Subscribe to live matches for spectator feature
+  useEffect(() => {
+    const unsubscribe = subscribeToLiveMatches((matches) => {
+      setLiveMatches(matches.filter(m => m.status === "active"));
+    });
+    return unsubscribe;
   }, []);
 
   const handleRefresh = useCallback(async () => {
@@ -329,6 +340,61 @@ export default function Home() {
             </svg>
           </div>
         </Link>
+      )}
+
+      {/* Live Matches */}
+      {liveMatches.length > 0 && (
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+            <h2 className="text-white font-semibold">Live Now</h2>
+          </div>
+          <div className="space-y-2">
+            {liveMatches.map((match) => (
+              <Link
+                key={match.id}
+                href={`/spectate/${match.id}`}
+                className="block bg-[#2a2a2a] rounded-xl p-4 hover:bg-[#333] transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={match.currentPlayerIndex === 0 ? "text-white font-semibold" : "text-slate-400"}>
+                        {match.player1Name}
+                      </span>
+                      <span className="text-[#4ade80] font-bold">{match.player1Legs}</span>
+                      <span className="text-slate-500">-</span>
+                      <span className="text-[#4ade80] font-bold">{match.player2Legs}</span>
+                      <span className={match.currentPlayerIndex === 1 ? "text-white font-semibold" : "text-slate-400"}>
+                        {match.player2Name}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
+                      <span>{match.gameMode}</span>
+                      <span>•</span>
+                      <span>Bo{match.legsToWin * 2 - 1}</span>
+                      <span>•</span>
+                      <span>Leg {match.currentLeg}</span>
+                      {match.isRanked && (
+                        <>
+                          <span>•</span>
+                          <span className="text-[#4ade80]">Ranked</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right ml-4">
+                    <div className="text-lg font-mono">
+                      <span className="text-[#4ade80]">{match.player1Remaining}</span>
+                      <span className="text-slate-500 mx-1">:</span>
+                      <span className="text-[#4ade80]">{match.player2Remaining}</span>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Top Players */}

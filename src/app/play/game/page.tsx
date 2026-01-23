@@ -9,6 +9,8 @@ import { useData } from "@/context/DataContext";
 import { isTestPlayer } from "@/lib/test-players";
 import { updateBracketMatch, updateGroupMatch } from "@/lib/tournament-data";
 import { fetchPlayer, getFinnishTimestamp } from "@/lib/supabase-data";
+import { createLiveMatch, updateLiveMatch, deleteLiveMatch } from "@/lib/live-match-data";
+import type { ThrowHistory } from "@/types/live-match";
 
 interface GamePlayer {
   id: string;
@@ -146,6 +148,12 @@ function GameContent() {
   // Ref for horizontal scoreboard scrolling (3+ players)
   const scoreboardRef = useRef<HTMLDivElement>(null);
   const playerCardRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Live match ID for spectator feature
+  const liveMatchIdRef = useRef<string | null>(null);
+  const liveMatchCreatingRef = useRef(false); // Prevent race condition
+  // Throw history for detailed spectator view
+  const throwHistoryRef = useRef<ThrowHistory>({ legs: [] });
 
   // Auto-scroll to current player when turn changes (for 3+ players)
   useEffect(() => {
@@ -295,6 +303,151 @@ function GameContent() {
     initializePlayers();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataLoading]);
+
+  // Create live match for spectator feature (only for 2-player 301/501 games)
+  useEffect(() => {
+    if (!game || liveMatchIdRef.current || liveMatchCreatingRef.current || game.players.length !== 2) return;
+    if (game.gameMode !== "301" && game.gameMode !== "501") return;
+
+    // Prevent duplicate creation
+    liveMatchCreatingRef.current = true;
+
+    // Initialize throw history with first leg
+    throwHistoryRef.current = {
+      legs: [{
+        legNumber: 1,
+        starterId: game.currentPlayerIndex,
+        winnerId: null,
+        throws: [],
+      }],
+    };
+
+    const createMatch = async () => {
+      const liveMatch = await createLiveMatch({
+        player1Id: game.players[0].id,
+        player2Id: game.players[1].id,
+        player1Name: game.players[0].name,
+        player2Name: game.players[1].name,
+        gameMode: game.gameMode,
+        legsToWin: game.legsToWin,
+        isRanked: game.isRanked,
+        startingScore: game.startingScore,
+        currentPlayerIndex: game.currentPlayerIndex,
+        tournamentId: tournamentId || undefined,
+      });
+      if (liveMatch) {
+        liveMatchIdRef.current = liveMatch.id;
+      }
+    };
+
+    createMatch();
+  }, [game, tournamentId]);
+
+  // Track previous throws count to detect new throws
+  const prevThrowsCountRef = useRef<[number, number]>([0, 0]);
+  const prevLegRef = useRef<number>(1);
+
+  // Update live match when game state changes
+  useEffect(() => {
+    if (!game || !liveMatchIdRef.current || game.gameOver) return;
+
+    const p1Throws = game.players[0].throws;
+    const p2Throws = game.players[1].throws;
+    const [prevP1Count, prevP2Count] = prevThrowsCountRef.current;
+
+    // Detect new leg started
+    if (game.currentLeg > prevLegRef.current) {
+      // Mark previous leg winner
+      const lastLeg = throwHistoryRef.current.legs[throwHistoryRef.current.legs.length - 1];
+      if (lastLeg && lastLeg.winnerId === null) {
+        // Determine winner from leg scores
+        lastLeg.winnerId = game.players[0].legsWon > game.players[1].legsWon ? 0 : 1;
+      }
+
+      // Add new leg
+      throwHistoryRef.current.legs.push({
+        legNumber: game.currentLeg,
+        starterId: game.currentPlayerIndex,
+        winnerId: null,
+        throws: [],
+      });
+      prevLegRef.current = game.currentLeg;
+      prevThrowsCountRef.current = [0, 0];
+    }
+
+    // Detect new throws and add to history
+    const currentLeg = throwHistoryRef.current.legs[throwHistoryRef.current.legs.length - 1];
+    if (currentLeg) {
+      // Check if player 1 threw
+      if (p1Throws.length > prevP1Count) {
+        const newScore = p1Throws[p1Throws.length - 1];
+        currentLeg.throws.push({
+          p1Rem: game.players[0].remaining,
+          p2Rem: game.players[1].remaining,
+          thrower: 0,
+          score: newScore,
+        });
+      }
+      // Check if player 2 threw
+      if (p2Throws.length > prevP2Count) {
+        const newScore = p2Throws[p2Throws.length - 1];
+        currentLeg.throws.push({
+          p1Rem: game.players[0].remaining,
+          p2Rem: game.players[1].remaining,
+          thrower: 1,
+          score: newScore,
+        });
+      }
+    }
+
+    prevThrowsCountRef.current = [p1Throws.length, p2Throws.length];
+
+    const getAvg = (player: GamePlayer) => {
+      if (player.throws.length === 0) return 0;
+      const total = player.throws.reduce((sum, t) => sum + t, 0);
+      return total / player.throws.length;
+    };
+
+    updateLiveMatch(liveMatchIdRef.current, {
+      player1Legs: game.players[0].legsWon,
+      player2Legs: game.players[1].legsWon,
+      player1Remaining: game.players[0].remaining,
+      player2Remaining: game.players[1].remaining,
+      currentPlayerIndex: game.currentPlayerIndex,
+      currentLeg: game.currentLeg,
+      player1Avg: getAvg(game.players[0]),
+      player2Avg: getAvg(game.players[1]),
+      player1OneEighties: game.players[0].oneEighties,
+      player2OneEighties: game.players[1].oneEighties,
+      throwHistory: throwHistoryRef.current,
+    });
+  }, [
+    game?.players[0]?.remaining,
+    game?.players[1]?.remaining,
+    game?.players[0]?.legsWon,
+    game?.players[1]?.legsWon,
+    game?.currentPlayerIndex,
+    game?.currentLeg,
+    game?.gameOver,
+  ]);
+
+  // Clean up live match on unmount or when match ends
+  useEffect(() => {
+    return () => {
+      if (liveMatchIdRef.current) {
+        deleteLiveMatch(liveMatchIdRef.current);
+        liveMatchIdRef.current = null;
+      }
+    };
+  }, []);
+
+  // Delete live match when game is over
+  useEffect(() => {
+    if (game?.gameOver && liveMatchIdRef.current) {
+      deleteLiveMatch(liveMatchIdRef.current);
+      liveMatchIdRef.current = null;
+    }
+  }, [game?.gameOver]);
 
   // Delay before match winner buttons become interactive (prevents ghost clicks)
   useEffect(() => {
