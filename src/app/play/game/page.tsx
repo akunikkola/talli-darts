@@ -803,13 +803,15 @@ function GameContent() {
     const remaining = overrideRemaining !== undefined ? overrideRemaining : currentPlayer.remaining;
     const newRemaining = remaining - scoreValue;
 
-    // In visit mode (no double stats passed), check if player was on a double
-    // and we need to ask how many darts were thrown
-    if (doubleAttempts === undefined && isOnDouble(remaining) && game.inputMode === "round") {
-      // Show popup to ask how many darts were thrown
+    // In visit mode (no double stats passed), check if we need to ask about double attempts:
+    // 1. Player was already on a finishing double, OR
+    // 2. Player just checked out (must have thrown at least one double to finish)
+    const isCheckout = newRemaining === 0;
+    if (doubleAttempts === undefined && (isOnDouble(remaining) || isCheckout) && game.inputMode === "round") {
+      // Show popup to ask how many darts were thrown at doubles
       setPendingDoubleAttempts({
         playerIndex: game.currentPlayerIndex,
-        wasCheckout: newRemaining === 0,
+        wasCheckout: isCheckout,
         score: scoreValue,
         previousRemaining: remaining,
       });
