@@ -1371,7 +1371,7 @@ function GameContent() {
             style={{
               fontFamily: "var(--font-bebas), 'Impact', 'Arial Black', sans-serif",
               letterSpacing: '-0.02em',
-              fontSize: 'clamp(8rem, 25vw, 12rem)'
+              fontSize: 'clamp(10rem, 31vw, 15rem)'
             }}
           >
             {scorePopup.score}
