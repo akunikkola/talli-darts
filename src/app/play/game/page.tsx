@@ -27,6 +27,7 @@ interface GamePlayer {
   hundredPlus: number;
   doubleAttempts: number;
   doubleHits: number;
+  dartsThrown: number; // Actual darts thrown (accounts for checkouts with <3 darts)
   // First 9 darts tracking
   legFirst9Total: number; // Running total of first 9 darts in current leg
   legFirst9Visits: number; // Number of visits counted in current leg's first 9 (max 3)
@@ -128,6 +129,7 @@ function GameContent() {
     wasCheckout: boolean;
     score: number;
     previousRemaining: number;
+    checkoutDart?: number; // Which dart finished the leg (1, 2, or 3) - only for checkouts
   } | null>(null);
   // Track initialization errors
   const [initError, setInitError] = useState<string | null>(null);
@@ -241,6 +243,7 @@ function GameContent() {
             hundredPlus: 0,
             doubleAttempts: 0,
             doubleHits: 0,
+            dartsThrown: 0,
             legFirst9Total: 0,
             legFirst9Visits: 0,
             allFirst9Totals: [],
@@ -419,6 +422,10 @@ function GameContent() {
       player2Avg: getAvg(game.players[1]),
       player1OneEighties: game.players[0].oneEighties,
       player2OneEighties: game.players[1].oneEighties,
+      player1DoubleAttempts: game.players[0].doubleAttempts,
+      player2DoubleAttempts: game.players[1].doubleAttempts,
+      player1DoubleHits: game.players[0].doubleHits,
+      player2DoubleHits: game.players[1].doubleHits,
       throwHistory: throwHistoryRef.current,
     });
   }, [
@@ -523,7 +530,7 @@ function GameContent() {
     return sum / totals.length / 3;
   };
 
-  const getDartsThrown = (player: GamePlayer) => player.throws.length * 3;
+  const getDartsThrown = (player: GamePlayer) => player.dartsThrown;
 
   const getPlayerColor = (index: number, isCurrent: boolean) => {
     // Non-current players get dark grey background
@@ -946,7 +953,7 @@ function GameContent() {
     setGame((prev) => prev ? { ...prev, pendingLegWin: null } : null);
   };
 
-  const submitScore = (scoreValue: number, doubleAttempts?: number, doubleHits?: number, overrideRemaining?: number) => {
+  const submitScore = (scoreValue: number, doubleAttempts?: number, doubleHits?: number, overrideRemaining?: number, dartsInVisit: number = 3) => {
     // Only block for pendingDoubleAttempts if we're NOT being called from confirmDoubleAttempts
     // (when doubleAttempts is provided, we're coming from the popup confirmation)
     if (game.gameOver || game.pendingLegWin || (pendingDoubleAttempts && doubleAttempts === undefined)) return;
@@ -957,10 +964,14 @@ function GameContent() {
     const newRemaining = remaining - scoreValue;
 
     // In visit mode (no double stats passed), check if we need to ask about double attempts:
-    // 1. Player was already on a finishing double, OR
-    // 2. Player just checked out (must have thrown at least one double to finish)
+    // Only ask for realistic amateur checkouts (under 100) when there's indication of a finish attempt:
+    // 1. Player checked out, OR
+    // 2. Player was under 100 and is now on a one-dart finish (suggests they set up and might have tried)
     const isCheckout = newRemaining === 0;
-    if (doubleAttempts === undefined && (isOnDouble(remaining) || isCheckout) && game.inputMode === "round") {
+    const wasOnRealisticCheckout = remaining < 100;
+    const nowOnOneDartFinish = newRemaining > 0 && newRemaining <= 50 && (newRemaining === 50 || (newRemaining % 2 === 0 && newRemaining <= 40));
+    const shouldAskDoubles = isCheckout || (wasOnRealisticCheckout && nowOnOneDartFinish);
+    if (doubleAttempts === undefined && shouldAskDoubles && game.inputMode === "round") {
       // Show popup to ask how many darts were thrown at doubles
       setPendingDoubleAttempts({
         playerIndex: game.currentPlayerIndex,
@@ -974,8 +985,8 @@ function GameContent() {
     const isBust = newRemaining < 0 || newRemaining === 1;
 
     if (isBust) {
-      // In visit mode, if player was on a double before busting, ask about double attempts
-      if (doubleAttempts === undefined && isOnDouble(remaining) && game.inputMode === "round") {
+      // In visit mode, if player was on a realistic checkout before busting, ask about double attempts
+      if (doubleAttempts === undefined && remaining < 100 && game.inputMode === "round") {
         setPendingDoubleAttempts({
           playerIndex: game.currentPlayerIndex,
           wasCheckout: false, // It's a bust, so no checkout
@@ -994,6 +1005,7 @@ function GameContent() {
           ...currentP,
           lastScore: null,
           doubleAttempts: currentP.doubleAttempts + (doubleAttempts || 0),
+          dartsThrown: currentP.dartsThrown + dartsInVisit,
         };
         return {
           ...prev,
@@ -1035,6 +1047,7 @@ function GameContent() {
           hundredPlus: currentP.hundredPlus + (scoreValue >= 100 ? 1 : 0),
           doubleAttempts: currentP.doubleAttempts + (doubleAttempts || 0),
           doubleHits: currentP.doubleHits + (doubleHits || 0),
+          dartsThrown: currentP.dartsThrown + dartsInVisit,
           legFirst9Total: isFirst9 ? currentP.legFirst9Total + scoreValue : currentP.legFirst9Total,
           legFirst9Visits: isFirst9 ? currentP.legFirst9Visits + 1 : currentP.legFirst9Visits,
         };
@@ -1067,6 +1080,7 @@ function GameContent() {
           hundredPlus: currentP.hundredPlus + (scoreValue >= 100 ? 1 : 0),
           doubleAttempts: currentP.doubleAttempts + (doubleAttempts || 0),
           doubleHits: currentP.doubleHits + (doubleHits || 0),
+          dartsThrown: currentP.dartsThrown + dartsInVisit,
           legFirst9Total: isFirst9 ? currentP.legFirst9Total + scoreValue : currentP.legFirst9Total,
           legFirst9Visits: isFirst9 ? currentP.legFirst9Visits + 1 : currentP.legFirst9Visits,
         };
@@ -1081,13 +1095,25 @@ function GameContent() {
     }
   };
 
+  // Handle checkout dart selection (step 1 for checkouts)
+  const confirmCheckoutDart = (dartNumber: number) => {
+    if (!pendingDoubleAttempts || !game) return;
+    // Store which dart finished the leg, then move to double attempts question
+    setPendingDoubleAttempts({
+      ...pendingDoubleAttempts,
+      checkoutDart: dartNumber,
+    });
+  };
+
   // Handle double attempts popup confirmation (visit mode)
-  const confirmDoubleAttempts = (dartsThrown: number) => {
+  const confirmDoubleAttempts = (doubleAttempts: number) => {
     if (!pendingDoubleAttempts || !game) return;
 
-    const { wasCheckout, score, previousRemaining } = pendingDoubleAttempts;
-    const attempts = dartsThrown;
+    const { wasCheckout, score, previousRemaining, checkoutDart } = pendingDoubleAttempts;
+    const attempts = doubleAttempts;
     const hits = wasCheckout ? 1 : 0;
+    // For checkouts, use the dart number they specified; for non-checkouts, always 3 darts
+    const dartsInVisit = wasCheckout && checkoutDart ? checkoutDart : 3;
 
     // Clear the popup first
     setPendingDoubleAttempts(null);
@@ -1113,6 +1139,7 @@ function GameContent() {
           throws: [...currentP.throws, 0],
           lastScore: 0,
           doubleAttempts: currentP.doubleAttempts + attempts,
+          dartsThrown: currentP.dartsThrown + 3, // Bust always uses 3 darts
           legFirst9Total: currentP.legFirst9Total, // 0 added for bust
           legFirst9Visits: isFirst9 ? currentP.legFirst9Visits + 1 : currentP.legFirst9Visits,
         };
@@ -1126,10 +1153,10 @@ function GameContent() {
       return;
     }
 
-    // Now submit the score with double stats
+    // Now submit the score with double stats and dart count
     // Pass previousRemaining to ensure checkout detection works correctly
     // even if game state changed between showing popup and confirming
-    submitScore(score, attempts, hits, previousRemaining);
+    submitScore(score, attempts, hits, previousRemaining, dartsInVisit);
   };
 
   const handleNumberPad = (key: string) => {
@@ -1209,8 +1236,8 @@ function GameContent() {
   const handleBust = (doubleAttempts?: number) => {
     if (game?.gameOver || game?.pendingLegWin || pendingDoubleAttempts) return;
 
-    // In visit mode, if player is on a double, ask about double attempts
-    if (doubleAttempts === undefined && isOnDouble(currentPlayer.remaining) && game.inputMode === "round") {
+    // In visit mode, if player is on a realistic checkout (under 100), ask about double attempts
+    if (doubleAttempts === undefined && currentPlayer.remaining < 100 && game.inputMode === "round") {
       setPendingDoubleAttempts({
         playerIndex: game.currentPlayerIndex,
         wasCheckout: false,
@@ -1444,8 +1471,9 @@ function GameContent() {
       remainingBeforeDart -= dart.score;
     }
 
-    // Submit the total score using existing logic
-    submitScore(total, doubleAttempts, doubleHits);
+    // Submit the total score using existing logic, with actual darts thrown
+    const actualDartsThrown = game.currentDarts.length;
+    submitScore(total, doubleAttempts, doubleHits, undefined, actualDartsThrown);
 
     // Reset darts for next turn
     // Use setTimeout for checkouts to ensure pendingLegWin is set first
@@ -1480,22 +1508,24 @@ function GameContent() {
       remainingBeforeDart -= dart.score;
     }
 
-    // Update player's double attempts (no hits since we busted)
-    if (doubleAttempts > 0) {
-      setGame((prev) => {
-        if (!prev) return null;
-        const newPlayers = [...prev.players];
-        const currentP = newPlayers[prev.currentPlayerIndex];
-        newPlayers[prev.currentPlayerIndex] = {
-          ...currentP,
-          doubleAttempts: currentP.doubleAttempts + doubleAttempts,
-        };
-        return { ...prev, players: newPlayers };
-      });
-    }
+    // Track actual darts thrown in this visit
+    const actualDartsThrown = game.currentDarts.length;
+
+    // Update player's double attempts and darts thrown
+    setGame((prev) => {
+      if (!prev) return null;
+      const newPlayers = [...prev.players];
+      const currentP = newPlayers[prev.currentPlayerIndex];
+      newPlayers[prev.currentPlayerIndex] = {
+        ...currentP,
+        doubleAttempts: currentP.doubleAttempts + doubleAttempts,
+        dartsThrown: currentP.dartsThrown + actualDartsThrown,
+      };
+      return { ...prev, players: newPlayers };
+    });
 
     // Record bust (0 score) and move to next player
-    handleBust();
+    handleBust(doubleAttempts);
 
     // Reset darts
     setGame((prev) => prev ? {
@@ -1538,22 +1568,45 @@ function GameContent() {
       {pendingDoubleAttempts && (
         <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
           <div className="text-center p-6 w-full max-w-xs">
-            <h2 className="text-xl font-bold text-white mb-2">Darts at double?</h2>
-            <p className="text-slate-400 text-sm mb-4">
-              {pendingDoubleAttempts.wasCheckout ? "Nice checkout! " : ""}
-              How many darts did you throw at a double?
-            </p>
-            <div className="grid grid-cols-3 gap-3">
-              {[1, 2, 3].map((num) => (
-                <button
-                  key={num}
-                  onClick={() => confirmDoubleAttempts(num)}
-                  className="py-4 bg-[#2a2a2a] hover:bg-[#3a3a3a] rounded-xl text-2xl font-bold text-white"
-                >
-                  {num}
-                </button>
-              ))}
-            </div>
+            {/* Step 1: For checkouts, ask which dart finished the leg */}
+            {pendingDoubleAttempts.wasCheckout && !pendingDoubleAttempts.checkoutDart ? (
+              <>
+                <h2 className="text-xl font-bold text-white mb-2">Nice checkout!</h2>
+                <p className="text-slate-400 text-sm mb-4">
+                  Which dart did you finish on?
+                </p>
+                <div className="grid grid-cols-3 gap-3">
+                  {[1, 2, 3].map((num) => (
+                    <button
+                      key={num}
+                      onClick={() => confirmCheckoutDart(num)}
+                      className="py-4 bg-[#2a2a2a] hover:bg-[#3a3a3a] rounded-xl text-xl font-bold text-white"
+                    >
+                      {num === 1 ? "1st" : num === 2 ? "2nd" : "3rd"}
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Step 2: Ask about double attempts */}
+                <h2 className="text-xl font-bold text-white mb-2">Darts at double?</h2>
+                <p className="text-slate-400 text-sm mb-4">
+                  How many darts did you throw at a double?
+                </p>
+                <div className="grid grid-cols-4 gap-3">
+                  {[0, 1, 2, 3].slice(0, (pendingDoubleAttempts.checkoutDart || 3) + 1).map((num) => (
+                    <button
+                      key={num}
+                      onClick={() => confirmDoubleAttempts(num)}
+                      className="py-4 bg-[#2a2a2a] hover:bg-[#3a3a3a] rounded-xl text-2xl font-bold text-white"
+                    >
+                      {num}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

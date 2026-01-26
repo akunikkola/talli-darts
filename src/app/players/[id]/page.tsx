@@ -52,6 +52,12 @@ export default function PlayerProfile({ params }: { params: Promise<{ id: string
       .slice(0, 20); // Last 20 matches
   }, [matches, player]);
 
+  // Form indicators (last 5 matches)
+  const recentForm = useMemo(() => {
+    if (!player) return [];
+    return playerMatches.slice(0, 5).map(m => m.winnerId === player.id);
+  }, [playerMatches, player]);
+
   // Calculate ranking position
   const ranking = useMemo(() => {
     if (!player) return { overall: 0, elo301: 0, elo501: 0 };
@@ -373,6 +379,19 @@ export default function PlayerProfile({ params }: { params: Promise<{ id: string
               )}
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-slate-400 text-sm">#{ranking.overall} Overall</span>
+              </div>
+              {/* Form indicator */}
+              <div className="flex gap-1 mt-2">
+                {recentForm.length > 0 ? (
+                  recentForm.map((won, i) => (
+                    <div
+                      key={i}
+                      className={`w-2.5 h-2.5 rounded-full ${won ? "bg-[#4ade80]" : "bg-red-500"}`}
+                    />
+                  ))
+                ) : (
+                  <span className="text-slate-600 text-xs">No matches yet</span>
+                )}
               </div>
             </div>
           </div>

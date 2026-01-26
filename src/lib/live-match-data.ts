@@ -33,6 +33,10 @@ function dbToLiveMatch(row: LiveMatchRow): LiveMatchState {
     player2Avg: row.player2_avg,
     player1OneEighties: row.player1_one_eighties,
     player2OneEighties: row.player2_one_eighties,
+    player1DoubleAttempts: row.player1_double_attempts ?? 0,
+    player2DoubleAttempts: row.player2_double_attempts ?? 0,
+    player1DoubleHits: row.player1_double_hits ?? 0,
+    player2DoubleHits: row.player2_double_hits ?? 0,
     throwHistory: row.throw_history || { legs: [] },
     status: row.status as "active" | "completed" | "abandoned",
     tournamentId: row.tournament_id || undefined,
@@ -77,6 +81,10 @@ export async function createLiveMatch(
     player2_avg: 0,
     player1_one_eighties: 0,
     player2_one_eighties: 0,
+    player1_double_attempts: 0,
+    player2_double_attempts: 0,
+    player1_double_hits: 0,
+    player2_double_hits: 0,
     throw_history: initialHistory,
     status: 'active',
     tournament_id: input.tournamentId || null,
@@ -117,6 +125,10 @@ export async function updateLiveMatch(
   if (updates.player2Avg !== undefined) row.player2_avg = updates.player2Avg;
   if (updates.player1OneEighties !== undefined) row.player1_one_eighties = updates.player1OneEighties;
   if (updates.player2OneEighties !== undefined) row.player2_one_eighties = updates.player2OneEighties;
+  if (updates.player1DoubleAttempts !== undefined) row.player1_double_attempts = updates.player1DoubleAttempts;
+  if (updates.player2DoubleAttempts !== undefined) row.player2_double_attempts = updates.player2DoubleAttempts;
+  if (updates.player1DoubleHits !== undefined) row.player1_double_hits = updates.player1DoubleHits;
+  if (updates.player2DoubleHits !== undefined) row.player2_double_hits = updates.player2DoubleHits;
   if (updates.throwHistory !== undefined) row.throw_history = updates.throwHistory;
   if (updates.status !== undefined) row.status = updates.status;
 

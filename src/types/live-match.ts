@@ -43,11 +43,15 @@ export interface LiveMatchState {
   currentPlayerIndex: number;
   currentLeg: number;
 
-  // Stats
+  // Stats (match totals - computed from throw history but cached for quick access)
   player1Avg: number;
   player2Avg: number;
   player1OneEighties: number;
   player2OneEighties: number;
+  player1DoubleAttempts: number;
+  player2DoubleAttempts: number;
+  player1DoubleHits: number;
+  player2DoubleHits: number;
 
   // Throw history for detailed view
   throwHistory: ThrowHistory;
@@ -83,6 +87,10 @@ export interface LiveMatchRow {
   player2_avg: number;
   player1_one_eighties: number;
   player2_one_eighties: number;
+  player1_double_attempts: number;
+  player2_double_attempts: number;
+  player1_double_hits: number;
+  player2_double_hits: number;
   throw_history: ThrowHistory;
   status: string;
   tournament_id: string | null;
@@ -116,6 +124,10 @@ export interface UpdateLiveMatchInput {
   player2Avg?: number;
   player1OneEighties?: number;
   player2OneEighties?: number;
+  player1DoubleAttempts?: number;
+  player2DoubleAttempts?: number;
+  player1DoubleHits?: number;
+  player2DoubleHits?: number;
   throwHistory?: ThrowHistory;
   status?: "active" | "completed" | "abandoned";
 }

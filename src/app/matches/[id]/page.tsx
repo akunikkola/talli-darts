@@ -4,8 +4,29 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useData } from "@/context/DataContext";
-import { formatFinnishDateTime, calculateMatchDuration, formatDuration } from "@/lib/supabase-data";
-import { useState } from "react";
+import { formatFinnishDateTime, calculateMatchDuration, formatDuration, type MatchResult } from "@/lib/supabase-data";
+import { useState, useMemo } from "react";
+
+type ViewTab = "stats" | "visits" | "h2h";
+
+// Get player's recent form (last 5 matches, excluding current match)
+function getRecentForm(matches: MatchResult[], playerId: string, excludeMatchId: string): boolean[] {
+  const playerMatches = matches
+    .filter((m) => m.id !== excludeMatchId && (m.player1Id === playerId || m.player2Id === playerId))
+    .slice(0, 5);
+
+  return playerMatches.map((m) => m.winnerId === playerId);
+}
+
+// Get H2H matches between two players (excluding current match)
+function getH2HMatches(matches: MatchResult[], player1Id: string, player2Id: string, excludeMatchId: string): MatchResult[] {
+  return matches.filter(
+    (m) =>
+      m.id !== excludeMatchId &&
+      ((m.player1Id === player1Id && m.player2Id === player2Id) ||
+        (m.player1Id === player2Id && m.player2Id === player1Id))
+  );
+}
 
 // Stat comparison bar component
 function StatBar({
@@ -55,6 +76,7 @@ export default function MatchDetail() {
   const { matches, players, deleteMatchAndRevertStats, loading } = useData();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [activeTab, setActiveTab] = useState<ViewTab>("stats");
 
   const matchId = params.id as string;
   const match = matches.find((m) => m.id === matchId);
@@ -62,6 +84,33 @@ export default function MatchDetail() {
   // Get player data for profile pictures
   const player1 = match ? players.find((p) => p.id === match.player1Id) : null;
   const player2 = match ? players.find((p) => p.id === match.player2Id) : null;
+
+  // Form indicators (last 5 matches before this one)
+  const player1Form = useMemo(() => {
+    if (!match) return [];
+    return getRecentForm(matches, match.player1Id, match.id);
+  }, [matches, match]);
+
+  const player2Form = useMemo(() => {
+    if (!match) return [];
+    return getRecentForm(matches, match.player2Id, match.id);
+  }, [matches, match]);
+
+  // H2H data
+  const h2hMatches = useMemo(() => {
+    if (!match) return [];
+    return getH2HMatches(matches, match.player1Id, match.player2Id, match.id);
+  }, [matches, match]);
+
+  const h2hRecord = useMemo(() => {
+    let p1Wins = 0;
+    let p2Wins = 0;
+    h2hMatches.forEach((m) => {
+      if (m.winnerId === match?.player1Id) p1Wins++;
+      else if (m.winnerId === match?.player2Id) p2Wins++;
+    });
+    return { p1Wins, p2Wins };
+  }, [h2hMatches, match?.player1Id, match?.player2Id]);
 
   if (loading) {
     return (
@@ -181,7 +230,7 @@ export default function MatchDetail() {
       </div>
 
       {/* Score Header */}
-      <div className="px-4 pb-6">
+      <div className="px-4">
         <div className="bg-[#2a2a2a] rounded-2xl p-4">
           <div className="flex items-center">
             {/* Player 1 */}
@@ -225,6 +274,19 @@ export default function MatchDetail() {
                   {match.player1EloChange.toFixed(2)}
                 </p>
               )}
+              {/* Form indicator */}
+              <div className="flex gap-1 mt-1 justify-center">
+                {player1Form.length > 0 ? (
+                  player1Form.map((won, i) => (
+                    <div
+                      key={i}
+                      className={`w-2 h-2 rounded-full ${won ? "bg-[#4ade80]" : "bg-red-500"}`}
+                    />
+                  ))
+                ) : (
+                  <span className="text-slate-600 text-xs">-</span>
+                )}
+              </div>
             </Link>
 
             {/* Score */}
@@ -279,15 +341,66 @@ export default function MatchDetail() {
                   {match.player2EloChange.toFixed(2)}
                 </p>
               )}
+              {/* Form indicator */}
+              <div className="flex gap-1 mt-1 justify-center">
+                {player2Form.length > 0 ? (
+                  player2Form.map((won, i) => (
+                    <div
+                      key={i}
+                      className={`w-2 h-2 rounded-full ${won ? "bg-[#4ade80]" : "bg-red-500"}`}
+                    />
+                  ))
+                ) : (
+                  <span className="text-slate-600 text-xs">-</span>
+                )}
+              </div>
             </Link>
           </div>
         </div>
       </div>
 
-      {/* Statistics */}
-      <div className="px-4 pb-6">
-        <h2 className="text-white font-semibold mb-4">Match Statistics</h2>
-        {match.gameMode === "cricket" ? (
+      {/* Tabs */}
+      <div className="px-4 py-1.5">
+        <div className="grid grid-cols-3 gap-2 bg-[#2a2a2a] rounded-xl p-1">
+          <button
+            onClick={() => setActiveTab("stats")}
+            className={`py-2 rounded-lg text-sm font-semibold transition-colors ${
+              activeTab === "stats"
+                ? "bg-[#4ade80] text-black"
+                : "text-white hover:bg-[#333]"
+            }`}
+          >
+            Stats
+          </button>
+          <button
+            onClick={() => setActiveTab("visits")}
+            className={`py-2 rounded-lg text-sm font-semibold transition-colors ${
+              activeTab === "visits"
+                ? "bg-[#4ade80] text-black"
+                : "text-white hover:bg-[#333]"
+            }`}
+          >
+            Visits
+          </button>
+          <button
+            onClick={() => setActiveTab("h2h")}
+            className={`py-2 rounded-lg text-sm font-semibold transition-colors ${
+              activeTab === "h2h"
+                ? "bg-[#4ade80] text-black"
+                : "text-white hover:bg-[#333]"
+            }`}
+          >
+            H2H
+          </button>
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === "stats" && (
+        <>
+          {/* Statistics */}
+          <div className="px-4 pb-6">
+            {match.gameMode === "cricket" ? (
           // Cricket-specific stats
           <div className="bg-[#2a2a2a] rounded-2xl p-4">
             <StatBar
@@ -460,6 +573,95 @@ export default function MatchDetail() {
           </div>
         </div>
       </div>
+        </>
+      )}
+
+      {/* Visits Tab */}
+      {activeTab === "visits" && (
+        <div className="px-4 pb-6">
+          <div className="bg-[#2a2a2a] rounded-2xl p-8 text-center">
+            <div className="text-4xl mb-4">🎯</div>
+            <p className="text-slate-400 mb-2">Visit data not available</p>
+            <p className="text-slate-500 text-sm">
+              Throw-by-throw history is only available for live matches.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* H2H Tab */}
+      {activeTab === "h2h" && (
+        <div className="px-4 pb-6">
+          {h2hMatches.length === 0 ? (
+            <div className="bg-[#2a2a2a] rounded-2xl p-4">
+              <p className="text-slate-500 text-center">No previous matches between these players</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {/* H2H Record */}
+              <div className="bg-[#2a2a2a] rounded-2xl p-4">
+                <div className="flex items-center justify-center gap-6">
+                  <div className="text-center">
+                    <div className={`text-3xl font-black ${h2hRecord.p1Wins > h2hRecord.p2Wins ? "text-[#4ade80]" : "text-white"}`}>
+                      {h2hRecord.p1Wins}
+                    </div>
+                    <div className="text-slate-500 text-xs">{match.player1Name}</div>
+                  </div>
+                  <div className="text-slate-600 text-xl">-</div>
+                  <div className="text-center">
+                    <div className={`text-3xl font-black ${h2hRecord.p2Wins > h2hRecord.p1Wins ? "text-[#4ade80]" : "text-white"}`}>
+                      {h2hRecord.p2Wins}
+                    </div>
+                    <div className="text-slate-500 text-xs">{match.player2Name}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Previous Matches */}
+              <div className="space-y-2">
+                {h2hMatches.slice(0, 10).map((h2hMatch) => {
+                  const isP1First = h2hMatch.player1Id === match.player1Id;
+                  const p1Legs = isP1First ? h2hMatch.player1Legs : h2hMatch.player2Legs;
+                  const p2Legs = isP1First ? h2hMatch.player2Legs : h2hMatch.player1Legs;
+                  const p1Won = h2hMatch.winnerId === match.player1Id;
+                  const date = new Date(h2hMatch.playedAt);
+
+                  return (
+                    <Link
+                      key={h2hMatch.id}
+                      href={`/matches/${h2hMatch.id}`}
+                      className="block bg-[#2a2a2a] hover:bg-[#333] rounded-xl p-3 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-1 h-8 rounded-full ${p1Won ? "bg-[#e85d3b]" : "bg-[#f5a623]"}`} />
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className={`font-semibold ${p1Won ? "text-white" : "text-slate-400"}`}>
+                                {match.player1Name}
+                              </span>
+                              <span className="text-white font-bold">{p1Legs} - {p2Legs}</span>
+                              <span className={`font-semibold ${!p1Won ? "text-white" : "text-slate-400"}`}>
+                                {match.player2Name}
+                              </span>
+                            </div>
+                            <div className="text-slate-500 text-xs">
+                              {h2hMatch.gameMode} • {h2hMatch.isRanked ? "Ranked" : "Practice"}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-slate-500 text-xs">
+                          {date.toLocaleDateString("fi-FI")}
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

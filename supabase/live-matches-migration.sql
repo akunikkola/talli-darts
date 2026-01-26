@@ -28,6 +28,10 @@ create table public.live_matches (
   player2_avg numeric(10,2) default 0,
   player1_one_eighties integer default 0,
   player2_one_eighties integer default 0,
+  player1_double_attempts integer default 0,
+  player2_double_attempts integer default 0,
+  player1_double_hits integer default 0,
+  player2_double_hits integer default 0,
 
   -- Throw history for detailed spectator view
   -- Format: { "legs": [{ "legNumber": 1, "starterId": 0, "winnerId": null, "throws": [{ "p1Rem": 501, "p2Rem": 501, "thrower": 0, "score": 60 }, ...] }] }
@@ -54,3 +58,12 @@ alter publication supabase_realtime add table public.live_matches;
 -- Indexes for efficient queries
 create index idx_live_matches_status on public.live_matches(status);
 create index idx_live_matches_last_updated on public.live_matches(last_updated_at desc);
+
+-- ============================================
+-- MIGRATION: Add double stats columns (if table already exists)
+-- Run this if you already have the live_matches table
+-- ============================================
+-- alter table public.live_matches add column if not exists player1_double_attempts integer default 0;
+-- alter table public.live_matches add column if not exists player2_double_attempts integer default 0;
+-- alter table public.live_matches add column if not exists player1_double_hits integer default 0;
+-- alter table public.live_matches add column if not exists player2_double_hits integer default 0;
