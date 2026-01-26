@@ -589,11 +589,10 @@ export async function fetchActiveTournament(): Promise<Tournament | null> {
     .single();
 
   if (error) {
-    if (error.code === "PGRST116") {
-      // No rows returned
-      return null;
+    // PGRST116 = no rows, 42P01 = table doesn't exist - both expected
+    if (error.code !== "PGRST116" && error.code !== "42P01") {
+      console.error("Error fetching active tournament:", error);
     }
-    console.error("Error fetching active tournament:", error);
     return null;
   }
 
@@ -609,7 +608,10 @@ export async function fetchTournaments(): Promise<Tournament[]> {
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.error("Error fetching tournaments:", error);
+    // Don't log if table doesn't exist or no data
+    if (error.code !== '42P01' && error.code !== 'PGRST116') {
+      console.error("Error fetching tournaments:", error);
+    }
     return [];
   }
 

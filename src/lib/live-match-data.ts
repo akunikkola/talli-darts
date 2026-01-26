@@ -173,7 +173,10 @@ export async function fetchActiveLiveMatches(): Promise<LiveMatchState[]> {
     .order('started_at', { ascending: false });
 
   if (error) {
-    console.error('Error fetching active live matches:', error);
+    // Don't log if table doesn't exist (user hasn't run migration)
+    if (error.code !== '42P01') {
+      console.error('Error fetching active live matches:', error);
+    }
     return [];
   }
 
