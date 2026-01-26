@@ -261,29 +261,37 @@ export default function Home() {
         </div>
       )}
 
-      {/* Refresh button - top right */}
-      <button
-        onClick={handleRefresh}
-        disabled={isRefreshing}
-        className="absolute right-4 top-4 p-2 text-slate-400 hover:text-white disabled:opacity-50 transition-colors z-10"
-        title="Refresh"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className={`h-6 w-6 ${isRefreshing ? 'animate-spin' : ''}`}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-        </svg>
-      </button>
-
       {/* Header */}
-      <div className="text-center py-6">
-        <h1 className="text-4xl font-bold text-white">Talli Darts</h1>
-        <p className="text-slate-400 mt-1">Who do you think you are? I am!</p>
-        <p className="text-slate-600 text-xs mt-1">v2.3</p>
+      <div className="mb-6">
+        {/* Top row: DARTS APP (left) and VERSION 5.0 (right) */}
+        <div className="flex justify-between items-center font-[family-name:var(--font-bebas)]">
+          <span className="text-white text-sm tracking-wide">DARTS APP</span>
+          <button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="text-white text-sm tracking-wide hover:text-slate-300 disabled:opacity-50 transition-colors flex items-center gap-2"
+            title="Refresh"
+          >
+            <span>VERSION 5.0</span>
+            {isRefreshing && (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4 animate-spin"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            )}
+          </button>
+        </div>
+
+        {/* TALLYPALLY - centered, large */}
+        <h1 className="text-center font-[family-name:var(--font-bebas)] text-[4.875rem] leading-none tracking-tight mt-4">
+          <span className="text-white">TALLY</span>
+          <span className="text-[#b5b5b5]">PALLY</span>
+        </h1>
       </div>
 
       {/* Match Type Buttons */}
